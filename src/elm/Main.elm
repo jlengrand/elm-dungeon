@@ -10,15 +10,21 @@ type alias Model =
     { actors : Dict Int Actor }
 
 
-type alias TransformData =
+type alias Position =
     { x : Int
     , y : Int
     }
 
 
+type ObjectTypeData
+    = Player
+    | Enemy
+
+
 type Component
-    = TransformComponent TransformData
+    = TransformComponent Position
     | KeyboardComponent
+    | ObjectTypeComponent ObjectTypeData
 
 
 type alias Actors =
@@ -87,13 +93,15 @@ init =
                 , components =
                     [ TransformComponent { x = 1, y = 2 }
                     , KeyboardComponent
+                    , ObjectTypeComponent Player
                     ]
                 }
               )
             , ( 2
               , { id = 2
                 , components =
-                    [ TransformComponent { x = 2, y = 0 }
+                    [ TransformComponent { x = 1, y = 1 }
+                    , ObjectTypeComponent Enemy
                     ]
                 }
               )
@@ -117,6 +125,43 @@ update msg model =
             { model | actors = handleKeyboardEvent keycode model.actors } ! []
 
 
+isActorPlayer : Actor -> Bool
+isActorPlayer actor =
+    List.filter
+        (\c ->
+            case c of
+                ObjectTypeComponent Player ->
+                    True
+
+                _ ->
+                    False
+        )
+        actor.components
+        |> List.isEmpty
+        |> not
+
+
+removeEnemiesAtPlayer : Actor -> Actors -> Actors
+removeEnemiesAtPlayer actor acc =
+    [ actor ]
+        |> List.filter isActorPlayer
+        |> List.filterMap getPosition
+        |> List.map
+            (\position ->
+                actorsAt position acc
+            )
+        |> List.foldr
+            (\actors acc ->
+                Dict.foldr
+                    (\actorId _ acc ->
+                        Dict.remove actorId acc
+                    )
+                    acc
+                    actors
+            )
+            acc
+
+
 handleKeyboardEvent : Keyboard.KeyCode -> Actors -> Actors
 handleKeyboardEvent keycode actors =
     List.foldr
@@ -126,6 +171,7 @@ handleKeyboardEvent keycode actors =
                     case component of
                         KeyboardComponent ->
                             updateKeyboardComponent keycode actor acc
+                                |> removeEnemiesAtPlayer actor
 
                         _ ->
                             acc
@@ -137,35 +183,49 @@ handleKeyboardEvent keycode actors =
         (Dict.toList actors)
 
 
-moveFromKeyCode : Keyboard.KeyCode -> TransformData -> TransformData
-moveFromKeyCode keycode transformData =
+moveFromKeyCode : Keyboard.KeyCode -> Position -> Position
+moveFromKeyCode keycode position =
     case Dict.get keycode validKeyCodesMap of
         Just LeftArrow ->
-            { x = max 0 (transformData.x - 1), y = transformData.y }
+            { x = max 0 (position.x - 1), y = position.y }
 
         Just RightArrow ->
-            { x = min 2 (transformData.x + 1), y = transformData.y }
+            { x = min 2 (position.x + 1), y = position.y }
 
         Just UpArrow ->
-            { x = transformData.x, y = max 0 (transformData.y - 1) }
+            { x = position.x, y = max 0 (position.y - 1) }
 
         Just DownArrow ->
-            { x = transformData.x, y = min 2 (transformData.y + 1) }
+            { x = position.x, y = min 2 (position.y + 1) }
 
         _ ->
-            transformData
+            position
+
+
+actorsAt : Position -> Actors -> Actors
+actorsAt position actors =
+    Dict.filter
+        (\actorId actor ->
+            getPosition actor
+                |> Maybe.andThen
+                    (\actorPos ->
+                        Just <| actorPos == position
+                    )
+                |> Maybe.withDefault False
+        )
+        actors
 
 
 updateKeyboardComponent : Keyboard.KeyCode -> Actor -> Actors -> Actors
 updateKeyboardComponent keycode actor acc =
-    getTransformData actor
+    getPosition actor
         |> Maybe.andThen
-            (\transformData ->
+            (\position ->
                 Just <|
-                    moveFromKeyCode keycode transformData
+                    moveFromKeyCode keycode position
             )
         |> Maybe.andThen
-            (\transformData ->
+            (\position ->
                 let
                     newComponents =
                         List.filter
@@ -174,7 +234,7 @@ updateKeyboardComponent keycode actor acc =
                             )
                             actor.components
                 in
-                    Just { actor | components = (TransformComponent transformData) :: newComponents }
+                    Just { actor | components = (TransformComponent position) :: newComponents }
             )
         |> Maybe.andThen
             (\actor ->
@@ -197,8 +257,8 @@ isTransformComponent component =
             False
 
 
-getTransformData : Actor -> Maybe TransformData
-getTransformData actor =
+getPosition : Actor -> Maybe Position
+getPosition actor =
     List.filterMap
         (\c ->
             case c of
