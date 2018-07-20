@@ -109,12 +109,17 @@ handleKeyboardEvent : Keyboard.KeyCode -> Actors -> Actors
 handleKeyboardEvent keycode actors =
     List.foldr
         (\( actorId, actor ) acc ->
-            case actor.components of
-                KeyboardComponent ->
-                    updateKeyboardComponent keycode actor acc
+            List.foldr
+                (\component acc ->
+                    case component of
+                        KeyboardComponent ->
+                            updateKeyboardComponent keycode actor acc
 
-                _ ->
-                    acc
+                        _ ->
+                            acc
+                )
+                acc
+                actor.components
         )
         actors
         (Dict.toList actors)
@@ -126,10 +131,14 @@ updateKeyboardComponent keycode actor acc =
         getTransformData actor
             |> Maybe.andThen
                 (\transformData ->
-                    Just
-                        { x = transformData.x + 1
-                        , y = transformData.y
-                        }
+                    let
+                        _ =
+                            Debug.log "hi" "hi"
+                    in
+                        Just
+                            { x = transformData.x + 1
+                            , y = transformData.y
+                            }
                 )
             |> Maybe.andThen
                 (\transformData ->
@@ -153,7 +162,11 @@ updateKeyboardComponent keycode actor acc =
                 )
             |> Maybe.withDefault acc
     else
-        acc
+        let
+            _ =
+                Debug.log "not valid keycode" (toString keycode)
+        in
+            acc
 
 
 isTransformComponent : Component -> Bool
@@ -199,8 +212,9 @@ view model =
                                                     case c of
                                                         TransformComponent d ->
                                                             Just ( a, d )
-                                                 -- _ ->
-                                                 --     Nothing
+
+                                                        _ ->
+                                                            Nothing
                                                 )
                                     )
                                 |> List.concat
@@ -223,4 +237,4 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Keyboard.presses KeyPressed
+    Keyboard.downs KeyPressed
