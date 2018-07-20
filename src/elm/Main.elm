@@ -31,6 +31,13 @@ type alias Actor =
     }
 
 
+type KeyCodes
+    = LeftArrow
+    | UpArrow
+    | RightArrow
+    | DownArrow
+
+
 leftArrow : Int
 leftArrow =
     37
@@ -51,9 +58,14 @@ downArrow =
     40
 
 
-validKeyCodes : List Int
-validKeyCodes =
-    [ leftArrow, rightArrow, downArrow, upArrow ]
+validKeyCodesMap : Dict Keyboard.KeyCode KeyCodes
+validKeyCodesMap =
+    Dict.fromList
+        [ ( leftArrow, LeftArrow )
+        , ( rightArrow, RightArrow )
+        , ( downArrow, DownArrow )
+        , ( upArrow, UpArrow )
+        ]
 
 
 main : Program Never Model Msg
@@ -125,48 +137,54 @@ handleKeyboardEvent keycode actors =
         (Dict.toList actors)
 
 
+moveFromKeyCode : Keyboard.KeyCode -> TransformData -> TransformData
+moveFromKeyCode keycode transformData =
+    case Dict.get keycode validKeyCodesMap of
+        Just LeftArrow ->
+            { x = max 0 (transformData.x - 1), y = transformData.y }
+
+        Just RightArrow ->
+            { x = min 2 (transformData.x + 1), y = transformData.y }
+
+        Just UpArrow ->
+            { x = transformData.x, y = max 0 (transformData.y - 1) }
+
+        Just DownArrow ->
+            { x = transformData.x, y = min 2 (transformData.y + 1) }
+
+        _ ->
+            transformData
+
+
 updateKeyboardComponent : Keyboard.KeyCode -> Actor -> Actors -> Actors
 updateKeyboardComponent keycode actor acc =
-    if List.member keycode validKeyCodes then
-        getTransformData actor
-            |> Maybe.andThen
-                (\transformData ->
-                    let
-                        _ =
-                            Debug.log "hi" "hi"
-                    in
-                        Just
-                            { x = transformData.x + 1
-                            , y = transformData.y
-                            }
-                )
-            |> Maybe.andThen
-                (\transformData ->
-                    let
-                        newComponents =
-                            List.filter
-                                (\c ->
-                                    isTransformComponent c |> not
-                                )
-                                actor.components
-                    in
-                        Just { actor | components = (TransformComponent transformData) :: newComponents }
-                )
-            |> Maybe.andThen
-                (\actor ->
-                    Just <|
-                        Dict.insert
-                            actor.id
-                            actor
-                            acc
-                )
-            |> Maybe.withDefault acc
-    else
-        let
-            _ =
-                Debug.log "not valid keycode" (toString keycode)
-        in
-            acc
+    getTransformData actor
+        |> Maybe.andThen
+            (\transformData ->
+                Just <|
+                    moveFromKeyCode keycode transformData
+            )
+        |> Maybe.andThen
+            (\transformData ->
+                let
+                    newComponents =
+                        List.filter
+                            (\c ->
+                                isTransformComponent c |> not
+                            )
+                            actor.components
+                in
+                    Just { actor | components = (TransformComponent transformData) :: newComponents }
+            )
+        |> Maybe.andThen
+            (\actor ->
+                Just <|
+                    Dict.insert
+                        actor.id
+                        actor
+                        acc
+            )
+        |> Maybe.withDefault acc
 
 
 isTransformComponent : Component -> Bool
