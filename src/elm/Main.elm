@@ -1,10 +1,27 @@
 module Main exposing (main)
 
-import Html exposing (Html)
+import Html exposing (Html, div, text)
+import Dict exposing (Dict)
 
 
 type alias Model =
-    {}
+    { actors : List Actor }
+
+
+type alias TransformData =
+    { x : Int
+    , y : Int
+    }
+
+
+type Component
+    = TransformComponent TransformData
+
+
+type alias Actor =
+    { id : Int
+    , components : Dict String Component
+    }
 
 
 type Msg
@@ -23,7 +40,16 @@ main =
 
 init : ( Model, Cmd Msg )
 init =
-    {} ! []
+    { actors =
+        [ { id = 1
+          , components =
+                Dict.fromList
+                    [ ( "transform", TransformComponent { x = 1, y = 2 } )
+                    ]
+          }
+        ]
+    }
+        ! []
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -35,9 +61,17 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    Html.div []
-        [ Html.text "Plop"
-        ]
+    List.range 0 2
+        |> List.map
+            (\x ->
+                List.range 0 2
+                    |> List.map
+                        (\y ->
+                            text (toString ( x, y ))
+                        )
+                    |> div []
+            )
+        |> div []
 
 
 subscriptions : Model -> Sub Msg
