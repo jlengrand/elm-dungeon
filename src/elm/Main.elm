@@ -152,12 +152,16 @@ removeEnemiesAtPlayer actor acc =
             )
         |> List.foldr
             (\actors acc ->
-                Dict.foldr
-                    (\actorId _ acc ->
-                        Dict.remove actorId acc
+                Dict.filter
+                    (\actorId _ ->
+                        actor.id /= actorId
                     )
-                    acc
                     actors
+                    |> Dict.foldr
+                        (\actorId _ acc ->
+                            Dict.remove actorId acc
+                        )
+                        acc
             )
             acc
 
