@@ -2,6 +2,7 @@ module Main exposing (main)
 
 import Html exposing (Html, div, text)
 import Dict exposing (Dict)
+import Maybe.Extra
 
 
 type alias Model =
@@ -20,7 +21,7 @@ type Component
 
 type alias Actor =
     { id : Int
-    , components : Dict String Component
+    , components : List Component
     }
 
 
@@ -43,9 +44,13 @@ init =
     { actors =
         [ { id = 1
           , components =
-                Dict.fromList
-                    [ ( "transform", TransformComponent { x = 1, y = 2 } )
-                    ]
+                [ TransformComponent { x = 1, y = 2 }
+                ]
+          }
+        , { id = 2
+          , components =
+                [ TransformComponent { x = 2, y = 0 }
+                ]
           }
         ]
     }
@@ -63,11 +68,36 @@ view : Model -> Html Msg
 view model =
     List.range 0 2
         |> List.map
-            (\x ->
+            (\y ->
                 List.range 0 2
                     |> List.map
-                        (\y ->
-                            text (toString ( x, y ))
+                        (\x ->
+                            -- text (toString ( x, y ))
+                            model.actors
+                                |> List.map
+                                    (\a ->
+                                        a.components
+                                            |> List.map
+                                                (\c ->
+                                                    case c of
+                                                        TransformComponent d ->
+                                                            Just ( a, d )
+                                                 -- _ ->
+                                                 --     Nothing
+                                                )
+                                    )
+                                |> List.concat
+                                |> Maybe.Extra.values
+                                |> List.filter
+                                    (\( a, d ) ->
+                                        d.x == x && d.y == y
+                                    )
+                                |> List.head
+                                |> Maybe.andThen
+                                    (\( a, _ ) ->
+                                        Just <| text <| "[" ++ (toString (a.id)) ++ "]"
+                                    )
+                                |> Maybe.withDefault (text "[]")
                         )
                     |> div []
             )
