@@ -1,0 +1,14 @@
+{
+    "version": "1.0.0",
+    "summary": "Elm Dungeon",
+    "repository": "https://github.com/jlengrand/elm-dungeon.git",
+    "license": "MIT",
+    "source-directories": [
+        "./src/elm"
+    ],
+    "exposed-modules": [],
+    "native-modules": true,
+    "dependencies": {
+    },
+    "elm-version": "0.18.0 <= v < 0.19.0"
+}
