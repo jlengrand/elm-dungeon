@@ -1,12 +1,13 @@
 module Main exposing (main)
 
 import Html exposing (Html, div, text)
-import Dict exposing (Dict)
 import Maybe.Extra
+import Keyboard
+import Dict exposing (Dict)
 
 
 type alias Model =
-    { actors : List Actor }
+    { actors : Dict Int Actor }
 
 
 type alias TransformData =
@@ -17,6 +18,11 @@ type alias TransformData =
 
 type Component
     = TransformComponent TransformData
+    | KeyboardComponent
+
+
+type alias Actors =
+    Dict Int Actor
 
 
 type alias Actor =
@@ -25,8 +31,29 @@ type alias Actor =
     }
 
 
-type Msg
-    = NoOp
+leftArrow : Int
+leftArrow =
+    37
+
+
+upArrow : Int
+upArrow =
+    38
+
+
+rightArrow : Int
+rightArrow =
+    39
+
+
+downArrow : Int
+downArrow =
+    40
+
+
+validKeyCodes : List Int
+validKeyCodes =
+    [ leftArrow, rightArrow, downArrow, upArrow ]
 
 
 main : Program Never Model Msg
@@ -42,19 +69,30 @@ main =
 init : ( Model, Cmd Msg )
 init =
     { actors =
-        [ { id = 1
-          , components =
-                [ TransformComponent { x = 1, y = 2 }
-                ]
-          }
-        , { id = 2
-          , components =
-                [ TransformComponent { x = 2, y = 0 }
-                ]
-          }
-        ]
+        Dict.fromList
+            [ ( 1
+              , { id = 1
+                , components =
+                    [ TransformComponent { x = 1, y = 2 }
+                    , KeyboardComponent
+                    ]
+                }
+              )
+            , ( 2
+              , { id = 2
+                , components =
+                    [ TransformComponent { x = 2, y = 0 }
+                    ]
+                }
+              )
+            ]
     }
         ! []
+
+
+type Msg
+    = NoOp
+    | KeyPressed Keyboard.KeyCode
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -62,6 +100,85 @@ update msg model =
     case msg of
         NoOp ->
             ( model, Cmd.none )
+
+        KeyPressed keycode ->
+            { model | actors = handleKeyboardEvent keycode model.actors } ! []
+
+
+handleKeyboardEvent : Keyboard.KeyCode -> Actors -> Actors
+handleKeyboardEvent keycode actors =
+    List.foldr
+        (\( actorId, actor ) acc ->
+            case actor.components of
+                KeyboardComponent ->
+                    updateKeyboardComponent keycode actor acc
+
+                _ ->
+                    acc
+        )
+        actors
+        (Dict.toList actors)
+
+
+updateKeyboardComponent : Keyboard.KeyCode -> Actor -> Actors -> Actors
+updateKeyboardComponent keycode actor acc =
+    if List.member keycode validKeyCodes then
+        getTransformData actor
+            |> Maybe.andThen
+                (\transformData ->
+                    Just
+                        { x = transformData.x + 1
+                        , y = transformData.y
+                        }
+                )
+            |> Maybe.andThen
+                (\transformData ->
+                    let
+                        newComponents =
+                            List.filter
+                                (\c ->
+                                    isTransformComponent c |> not
+                                )
+                                actor.components
+                    in
+                        Just { actor | components = (TransformComponent transformData) :: newComponents }
+                )
+            |> Maybe.andThen
+                (\actor ->
+                    Just <|
+                        Dict.insert
+                            actor.id
+                            actor
+                            acc
+                )
+            |> Maybe.withDefault acc
+    else
+        acc
+
+
+isTransformComponent : Component -> Bool
+isTransformComponent component =
+    case component of
+        TransformComponent _ ->
+            True
+
+        _ ->
+            False
+
+
+getTransformData : Actor -> Maybe TransformData
+getTransformData actor =
+    List.filterMap
+        (\c ->
+            case c of
+                TransformComponent d ->
+                    Just d
+
+                _ ->
+                    Nothing
+        )
+        actor.components
+        |> List.head
 
 
 view : Model -> Html Msg
@@ -73,9 +190,9 @@ view model =
                     |> List.map
                         (\x ->
                             -- text (toString ( x, y ))
-                            model.actors
+                            Dict.toList model.actors
                                 |> List.map
-                                    (\a ->
+                                    (\( _, a ) ->
                                         a.components
                                             |> List.map
                                                 (\c ->
@@ -106,4 +223,4 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Keyboard.presses KeyPressed
