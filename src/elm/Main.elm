@@ -7,7 +7,12 @@ import Dict exposing (Dict)
 
 
 type alias Model =
-    { actors : Dict Int Actor }
+    { actors : Dict Int Actor
+    }
+
+
+type alias Monies =
+    Int
 
 
 type alias Position =
@@ -19,11 +24,13 @@ type alias Position =
 type ObjectTypeData
     = Player
     | Enemy
+    | Coin
 
 
 type Component
     = TransformComponent Position
     | KeyboardComponent
+    | MoniesCollectedComponent Monies
     | ObjectTypeComponent ObjectTypeData
 
 
@@ -94,6 +101,7 @@ init =
                     [ TransformComponent { x = 1, y = 2 }
                     , KeyboardComponent
                     , ObjectTypeComponent Player
+                    , MoniesCollectedComponent 0
                     ]
                 }
               )
@@ -102,6 +110,14 @@ init =
                 , components =
                     [ TransformComponent { x = 1, y = 1 }
                     , ObjectTypeComponent Enemy
+                    ]
+                }
+              )
+            , ( 3
+              , { id = 3
+                , components =
+                    [ TransformComponent { x = 0, y = 0 }
+                    , ObjectTypeComponent Coin
                     ]
                 }
               )
@@ -125,6 +141,20 @@ update msg model =
             { model | actors = handleKeyboardEvent keycode model.actors } ! []
 
 
+getPlayerActor : Actors -> Maybe Actor
+getPlayerActor actors =
+    Dict.filter
+        (\_ actor -> isActorPlayer actor)
+        actors
+        |> Dict.toList
+        |> List.head
+        |> Maybe.map Tuple.second
+
+
+
+-- |> Tuple.second
+
+
 isActorPlayer : Actor -> Bool
 isActorPlayer actor =
     List.filter
@@ -143,6 +173,7 @@ isActorPlayer actor =
 
 removeEnemiesAtPlayer : Actor -> Actors -> Actors
 removeEnemiesAtPlayer actor acc =
+    -- TODO : Removes all but players. Should only remove enemies
     [ actor ]
         |> List.filter isActorPlayer
         |> List.filterMap getPosition
@@ -166,6 +197,12 @@ removeEnemiesAtPlayer actor acc =
             acc
 
 
+collectCoinsAtPlayer : Actor -> Actors -> Actors
+collectCoinsAtPlayer actor acc =
+    -- TODO
+    acc
+
+
 handleKeyboardEvent : Keyboard.KeyCode -> Actors -> Actors
 handleKeyboardEvent keycode actors =
     List.foldr
@@ -177,6 +214,7 @@ handleKeyboardEvent keycode actors =
                             updateKeyboardComponent keycode actor acc
                                 |> removeEnemiesAtPlayer actor
 
+                        -- |> collectCoinsAtPlayer actor
                         _ ->
                             acc
                 )
@@ -276,45 +314,68 @@ getPosition actor =
         |> List.head
 
 
+getMoniesFromComponentOrZero : Component -> Int
+getMoniesFromComponentOrZero component =
+    case component of
+        MoniesCollectedComponent monies ->
+            monies
+
+        _ ->
+            0
+
+
+getMonies : Model -> Int
+getMonies model =
+    case getPlayerActor model.actors of
+        Just actor ->
+            List.foldr (+) 0 <| List.map getMoniesFromComponentOrZero actor.components
+
+        Nothing ->
+            0
+
+
 view : Model -> Html Msg
 view model =
-    List.range 0 2
-        |> List.map
-            (\y ->
-                List.range 0 2
-                    |> List.map
-                        (\x ->
-                            -- text (toString ( x, y ))
-                            Dict.toList model.actors
-                                |> List.map
-                                    (\( _, a ) ->
-                                        a.components
-                                            |> List.map
-                                                (\c ->
-                                                    case c of
-                                                        TransformComponent d ->
-                                                            Just ( a, d )
+    div []
+        [ List.range 0 2
+            |> List.map
+                (\y ->
+                    List.range 0 2
+                        |> List.map
+                            (\x ->
+                                -- text (toString ( x, y ))
+                                Dict.toList model.actors
+                                    |> List.map
+                                        (\( _, a ) ->
+                                            a.components
+                                                |> List.map
+                                                    (\c ->
+                                                        case c of
+                                                            TransformComponent d ->
+                                                                Just ( a, d )
 
-                                                        _ ->
-                                                            Nothing
-                                                )
-                                    )
-                                |> List.concat
-                                |> Maybe.Extra.values
-                                |> List.filter
-                                    (\( a, d ) ->
-                                        d.x == x && d.y == y
-                                    )
-                                |> List.head
-                                |> Maybe.andThen
-                                    (\( a, _ ) ->
-                                        Just <| text <| "[" ++ (toString (a.id)) ++ "]"
-                                    )
-                                |> Maybe.withDefault (text "[]")
-                        )
-                    |> div []
-            )
-        |> div []
+                                                            _ ->
+                                                                Nothing
+                                                    )
+                                        )
+                                    |> List.concat
+                                    |> Maybe.Extra.values
+                                    |> List.filter
+                                        (\( a, d ) ->
+                                            d.x == x && d.y == y
+                                        )
+                                    |> List.head
+                                    |> Maybe.andThen
+                                        (\( a, _ ) ->
+                                            Just <| text <| "[" ++ (toString (a.id)) ++ "]"
+                                        )
+                                    |> Maybe.withDefault (text "[]")
+                            )
+                        |> div []
+                )
+            |> div []
+        , text ("Monies : " ++ (toString (getMonies model)) ++ "!")
+        ]
 
 
 subscriptions : Model -> Sub Msg
