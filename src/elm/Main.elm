@@ -218,9 +218,32 @@ collectCoinsAtPlayer actor acc =
                         (\actorId _ acc ->
                             Dict.remove actorId acc
                         )
-                        acc
+                        (Debug.log "acc" acc)
             )
             acc
+
+
+addCoinToPlayer : Actors -> Actors
+addCoinToPlayer actors =
+    Dict.map
+        (\key actor ->
+            if isActorPlayer actor then
+                let
+                    newComponents =
+                        List.filter
+                            (\c ->
+                                isMoniesCollectedComponent c |> not
+                            )
+                            actor.components
+
+                    newMonies =
+                        getMoniesFromPlayer actor
+                in
+                    { actor | components = (MoniesCollectedComponent newMonies) :: newComponents }
+            else
+                actor
+        )
+        actors
 
 
 handleKeyboardEvent : Keyboard.KeyCode -> Actors -> Actors
@@ -376,6 +399,11 @@ getPosition actor =
         )
         actor.components
         |> List.head
+
+
+getMoniesFromPlayer : Actor -> Int
+getMoniesFromPlayer actor =
+    List.foldr (+) 0 <| List.map getMoniesFromComponentOrZero actor.components
 
 
 getMoniesFromComponentOrZero : Component -> Int
