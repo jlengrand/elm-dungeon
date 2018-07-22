@@ -25,9 +25,9 @@
     "webpack-dev-server": "^2.9.7"
   },
   "scripts": {
-    "dev": "./node_modules/.bin/webpack-dev-server --config ./webpack.config.dev.js --open",
-    "prod": "./node_modules/.bin/webpack --config ./webpack.config.prod.js -p",
-    "analyze": "elm-analyze",
+    "dev": "webpack-dev-server --config ./webpack.config.dev.js --open",
+    "prod": "webpack --config ./webpack.config.prod.js -p",
+    "analyse": "elm-analyse",
     "postinstall": "NODE_TLS_REJECT_UNAUTHORIZED=\"0\" ./node_modules/.bin/elm-install install"
   }
 }
