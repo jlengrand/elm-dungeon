@@ -237,7 +237,7 @@ addCoinToPlayer actors =
                             actor.components
 
                     newMonies =
-                        getMoniesFromPlayer actor
+                        getMoniesFromPlayer actor + 1
                 in
                     { actor | components = (MoniesCollectedComponent newMonies) :: newComponents }
             else
