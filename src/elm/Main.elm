@@ -184,8 +184,8 @@ removeEnemiesAtPlayer actor acc =
         |> List.foldr
             (\actors acc ->
                 Dict.filter
-                    (\actorId _ ->
-                        actor.id /= actorId
+                    (\actorId actorValue ->
+                        actorIsEnemy actorValue && actor.id /= actorId
                     )
                     actors
                     |> Dict.foldr
@@ -197,10 +197,18 @@ removeEnemiesAtPlayer actor acc =
             acc
 
 
-collectCoinsAtPlayer : Actor -> Actors -> Actors
-collectCoinsAtPlayer actor acc =
-    -- TODO
-    acc
+
+-- collectCoinsAtPlayer : Actor -> Actors -> Actors
+-- collectCoinsAtPlayer actor acc =
+--     [ actor ]
+--         |> List.filter isActorPlayer
+--         |> List.filterMap getPosition
+--         |> List.map
+--             (\position ->
+--                 actorsAt position acc
+--             )
+--         -- |> List.filter
+--         --     (\actor -> actorIsCollectible actor)
 
 
 handleKeyboardEvent : Keyboard.KeyCode -> Actors -> Actors
@@ -287,6 +295,50 @@ updateKeyboardComponent keycode actor acc =
                         acc
             )
         |> Maybe.withDefault acc
+
+
+actorIsCollectible : Actor -> Bool
+actorIsCollectible actor =
+    List.filter isCoinComponent actor.components
+        |> List.isEmpty
+        |> not
+
+
+actorIsEnemy : Actor -> Bool
+actorIsEnemy actor =
+    List.filter isEnemyComponent actor.components
+        |> List.isEmpty
+        |> not
+
+
+isEnemyComponent : Component -> Bool
+isEnemyComponent component =
+    case component of
+        ObjectTypeComponent Enemy ->
+            True
+
+        _ ->
+            False
+
+
+isCoinComponent : Component -> Bool
+isCoinComponent component =
+    case component of
+        ObjectTypeComponent Coin ->
+            True
+
+        _ ->
+            False
+
+
+isMoniesCollectedComponent : Component -> Bool
+isMoniesCollectedComponent component =
+    case component of
+        MoniesCollectedComponent _ ->
+            True
+
+        _ ->
+            False
 
 
 isTransformComponent : Component -> Bool
