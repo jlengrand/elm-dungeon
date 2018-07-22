@@ -4,6 +4,7 @@ import Html exposing (Html, div, text)
 import Maybe.Extra
 import Keyboard
 import Dict exposing (Dict)
+import Debug
 
 
 type alias Model =
@@ -184,7 +185,7 @@ removeEnemiesAtPlayer actor acc =
             (\actors acc ->
                 Dict.filter
                     (\actorId actorValue ->
-                        actorIsEnemy actorValue && actor.id /= actorId
+                        actorIsEnemy actorValue
                     )
                     actors
                     |> Dict.foldr
@@ -210,7 +211,7 @@ collectCoinsAtPlayer actor acc =
             (\actors acc ->
                 Dict.filter
                     (\actorId actorValue ->
-                        actorIsCollectible actorValue && actor.id /= actorId
+                        actorIsCollectible actorValue
                     )
                     actors
                     |> Dict.foldr
