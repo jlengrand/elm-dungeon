@@ -203,24 +203,93 @@ collectCoinsAtPlayer actor acc =
     [ actor ]
         |> List.filter isActorPlayer
         |> List.filterMap getPosition
-        |> List.map
+        |> List.concatMap
             (\position ->
                 actorsAt position acc
+                    |> Dict.values
             )
-        |> List.foldr
-            (\actors acc ->
-                Dict.filter
-                    (\actorId actorValue ->
-                        actorIsCollectible actorValue
-                    )
-                    actors
-                    |> Dict.foldr
-                        (\actorId _ acc ->
-                            Dict.remove actorId acc
-                        )
-                        acc
-            )
-            acc
+        |> List.filter actorIsCollectible
+        -- This is transforming a (List Actor) to (Dict Int Actor) which is type alias of Actors
+        |> List.foldr insertActor Dict.empty
+        |> consumeCoinsAndGiveToPlayer actor acc
+
+
+consumeCoinsAndGiveToPlayer : Actor -> Actors -> Actors -> Actors
+consumeCoinsAndGiveToPlayer player acc coinActors =
+    acc
+        |> removeActorsById (getActorIds coinActors)
+        |> updateCoinCount player (getCoinCountFromActors coinActors)
+
+
+getActorIds : Actors -> List Int
+getActorIds actors =
+    Dict.keys actors
+
+
+removeActorsById : List Int -> Actors -> Actors
+removeActorsById actorIdsToRemove acc =
+    Dict.filter
+        (\actorId _ ->
+            List.member actorId actorIdsToRemove
+                |> not
+        )
+        acc
+
+
+getCoinCountFromActors : Actors -> Int
+getCoinCountFromActors actors =
+    Dict.foldr
+        (\_ actor coins ->
+            if actorIsCollectible actor then
+                coins + 1
+            else
+                coins
+        )
+        0
+        actors
+
+
+updateCoinCount : Actor -> Int -> Actors -> Actors
+updateCoinCount actor coins acc =
+    actor
+        |> removeMoniesCollectedComponent
+        |> addCoinsToMoniesCollectedComponent (getMoniesFromActorOrZero actor) coins
+        |> (flip insertActor) acc
+
+
+removeMoniesCollectedComponent : Actor -> Actor
+removeMoniesCollectedComponent actor =
+    List.filter
+        (\c ->
+            case c of
+                MoniesCollectedComponent _ ->
+                    False
+
+                _ ->
+                    True
+        )
+        actor.components
+        |> setActorComponents actor
+
+
+setActorComponents : Actor -> List Component -> Actor
+setActorComponents actor components =
+    { actor | components = components }
+
+
+addCoinsToMoniesCollectedComponent : Int -> Int -> Actor -> Actor
+addCoinsToMoniesCollectedComponent currentCoins additionalCoins actor =
+    (MoniesCollectedComponent (currentCoins + additionalCoins))
+        :: actor.components
+        |> setActorComponents actor
+
+
+insertActor : Actor -> Actors -> Actors
+insertActor actor actors =
+    Dict.insert
+        actor.id
+        actor
+        actors
 
 
 handleKeyboardEvent : Keyboard.KeyCode -> Actors -> Actors
@@ -376,6 +445,13 @@ getPosition actor =
         )
         actor.components
         |> List.head
+
+
+getMoniesFromActorOrZero : Actor -> Int
+getMoniesFromActorOrZero actor =
+    actor.components
+        |> List.map getMoniesFromComponentOrZero
+        |> List.sum
 
 
 getMoniesFromComponentOrZero : Component -> Int
