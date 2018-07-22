@@ -10,6 +10,7 @@
     "copy-webpack-plugin": "^4.2.3",
     "css-loader": "^0.28.11",
     "elm": "^0.18.0",
+    "elm-analyse": "^0.14.2",
     "elm-github-install": "^1.6.1",
     "elm-hot-loader": "^0.5.4",
     "elm-webpack-loader": "^4.4.0",
@@ -26,6 +27,7 @@
   "scripts": {
     "dev": "./node_modules/.bin/webpack-dev-server --config ./webpack.config.dev.js --open",
     "prod": "./node_modules/.bin/webpack --config ./webpack.config.prod.js -p",
+    "analyze": "elm-analyze",
     "postinstall": "NODE_TLS_REJECT_UNAUTHORIZED=\"0\" ./node_modules/.bin/elm-install install"
   }
 }
