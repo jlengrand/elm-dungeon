@@ -172,9 +172,9 @@ isActorPlayer actor =
         |> not
 
 
-removeEnemiesAtPlayer : Maybe Actor -> Actors -> Actors
+removeEnemiesAtPlayer : Actors -> Actors
 removeEnemiesAtPlayer actor acc =
-    case actor of
+    case getPlayerActor acc of
         Just actor ->
             [ actor ]
                 |> List.filter isActorPlayer
@@ -202,9 +202,9 @@ removeEnemiesAtPlayer actor acc =
             acc
 
 
-collectCoinsAtPlayer : Maybe Actor -> Actors -> Actors
+collectCoinsAtPlayer : Actors -> Actors
 collectCoinsAtPlayer actor acc =
-    case actor of
+    case getPlayerActor acc of
         Just actor ->
             [ actor ]
                 |> List.filter isActorPlayer
@@ -262,8 +262,8 @@ handleKeyboardEvent keycode actors =
                     case component of
                         KeyboardComponent ->
                             updateKeyboardComponent keycode actor acc
-                                |> removeEnemiesAtPlayer (getPlayerActor acc)
-                                |> collectCoinsAtPlayer (getPlayerActor acc)
+                                |> removeEnemiesAtPlayer
+                                |> collectCoinsAtPlayer
 
                         _ ->
                             acc
