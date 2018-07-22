@@ -2,6 +2,7 @@
   "name": "elm-pixel-boulder-game",
   "version": "1.0.0",
   "repository": "https://github.com/jlengrand/elm-dungeon.git",
+  "license": "MIT",
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.25.0",
