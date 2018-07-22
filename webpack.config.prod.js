@@ -6,7 +6,7 @@ const webpack = require('webpack');
 module.exports = {
     entry: path.resolve(__dirname, 'src/dev.js'),
     output: {
-        path: path.resolve(__dirname, 'dist'),
+        path: path.resolve(__dirname, 'docs'),
         filename: 'bundle.js'
     },
     resolve: {
@@ -79,7 +79,7 @@ module.exports = {
     devServer: {
         compress: true,
         hot: true,
-        contentBase: path.resolve(__dirname, 'dist'),
+        contentBase: path.resolve(__dirname, 'docs'),
         stats: 'errors-only',
         host: 'localhost',
         public: 'localhost:8888',
