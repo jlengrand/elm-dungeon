@@ -173,7 +173,6 @@ isActorPlayer actor =
 
 removeEnemiesAtPlayer : Actor -> Actors -> Actors
 removeEnemiesAtPlayer actor acc =
-    -- TODO : Removes all but players. Should only remove enemies
     [ actor ]
         |> List.filter isActorPlayer
         |> List.filterMap getPosition
@@ -197,18 +196,30 @@ removeEnemiesAtPlayer actor acc =
             acc
 
 
-
--- collectCoinsAtPlayer : Actor -> Actors -> Actors
--- collectCoinsAtPlayer actor acc =
---     [ actor ]
---         |> List.filter isActorPlayer
---         |> List.filterMap getPosition
---         |> List.map
---             (\position ->
---                 actorsAt position acc
---             )
---         -- |> List.filter
---         --     (\actor -> actorIsCollectible actor)
+collectCoinsAtPlayer : Actor -> Actors -> Actors
+collectCoinsAtPlayer actor acc =
+    -- TODO : Add coins collected to player
+    [ actor ]
+        |> List.filter isActorPlayer
+        |> List.filterMap getPosition
+        |> List.map
+            (\position ->
+                actorsAt position acc
+            )
+        |> List.foldr
+            (\actors acc ->
+                Dict.filter
+                    (\actorId actorValue ->
+                        actorIsCollectible actorValue && actor.id /= actorId
+                    )
+                    actors
+                    |> Dict.foldr
+                        (\actorId _ acc ->
+                            Dict.remove actorId acc
+                        )
+                        acc
+            )
+            acc
 
 
 handleKeyboardEvent : Keyboard.KeyCode -> Actors -> Actors
@@ -221,8 +232,8 @@ handleKeyboardEvent keycode actors =
                         KeyboardComponent ->
                             updateKeyboardComponent keycode actor acc
                                 |> removeEnemiesAtPlayer actor
+                                |> collectCoinsAtPlayer actor
 
-                        -- |> collectCoinsAtPlayer actor
                         _ ->
                             acc
                 )
