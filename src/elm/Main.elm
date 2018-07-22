@@ -4,7 +4,6 @@ import Html exposing (Html, div, text)
 import Maybe.Extra
 import Keyboard
 import Dict exposing (Dict)
-import Debug
 
 
 type alias Model =
@@ -142,6 +141,16 @@ update msg model =
             { model | actors = handleKeyboardEvent keycode model.actors } ! []
 
 
+getPlayerActorFromId : Int -> Actors -> Maybe Actor
+getPlayerActorFromId actorId actors =
+    Dict.filter
+        (\_ actor -> actor.id == actorId)
+        actors
+        |> Dict.toList
+        |> List.head
+        |> Maybe.map Tuple.second
+
+
 getPlayerActor : Actors -> Maybe Actor
 getPlayerActor actors =
     Dict.filter
@@ -172,9 +181,9 @@ isActorPlayer actor =
         |> not
 
 
-removeEnemiesAtPlayer : Actors -> Actors
-removeEnemiesAtPlayer actor acc =
-    case getPlayerActor acc of
+removeEnemiesAtPlayer : Int -> Actors -> Actors
+removeEnemiesAtPlayer actorId acc =
+    case getPlayerActorFromId actorId acc of
         Just actor ->
             [ actor ]
                 |> List.filter isActorPlayer
@@ -202,9 +211,9 @@ removeEnemiesAtPlayer actor acc =
             acc
 
 
-collectCoinsAtPlayer : Actors -> Actors
-collectCoinsAtPlayer actor acc =
-    case getPlayerActor acc of
+collectCoinsAtPlayer : Int -> Actors -> Actors
+collectCoinsAtPlayer actorId acc =
+    case getPlayerActorFromId actorId acc of
         Just actor ->
             [ actor ]
                 |> List.filter isActorPlayer
@@ -262,8 +271,8 @@ handleKeyboardEvent keycode actors =
                     case component of
                         KeyboardComponent ->
                             updateKeyboardComponent keycode actor acc
-                                |> removeEnemiesAtPlayer
-                                |> collectCoinsAtPlayer
+                                |> removeEnemiesAtPlayer actorId
+                                |> collectCoinsAtPlayer actorId
 
                         _ ->
                             acc
