@@ -34,7 +34,7 @@
   },
   "husky": {
       "hooks": {
-        "pre-push": "yarn prod; git commit -am \"Add online demo\" "
+        "pre-commit": "yarn prod; git add docs"
       }
     }
 }
