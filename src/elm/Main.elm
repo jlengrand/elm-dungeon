@@ -172,55 +172,62 @@ isActorPlayer actor =
         |> not
 
 
-removeEnemiesAtPlayer : Actor -> Actors -> Actors
+removeEnemiesAtPlayer : Maybe Actor -> Actors -> Actors
 removeEnemiesAtPlayer actor acc =
-    [ actor ]
-        |> List.filter isActorPlayer
-        |> List.filterMap getPosition
-        |> List.map
-            (\position ->
-                actorsAt position acc
-            )
-        |> List.foldr
-            (\actors acc ->
-                Dict.filter
-                    (\actorId actorValue ->
-                        actorIsEnemy actorValue
+    case actor of
+        Just actor ->
+            [ actor ]
+                |> List.filter isActorPlayer
+                |> List.filterMap getPosition
+                |> List.map
+                    (\position ->
+                        actorsAt position acc
                     )
-                    actors
-                    |> Dict.foldr
-                        (\actorId _ acc ->
-                            Dict.remove actorId acc
-                        )
-                        acc
-            )
+                |> List.foldr
+                    (\actors acc ->
+                        Dict.filter
+                            (\actorId actorValue ->
+                                actorIsEnemy actorValue
+                            )
+                            actors
+                            |> Dict.foldr
+                                (\actorId _ acc ->
+                                    Dict.remove actorId acc
+                                )
+                                acc
+                    )
+                    acc
+
+        Nothing ->
             acc
 
 
-collectCoinsAtPlayer : Actor -> Actors -> Actors
+collectCoinsAtPlayer : Maybe Actor -> Actors -> Actors
 collectCoinsAtPlayer actor acc =
-    -- TODO : Add coins collected to player
-    [ actor ]
-        |> List.filter isActorPlayer
-        |> List.filterMap getPosition
-        |> List.map
-            (\position ->
-                actorsAt position acc
-            )
-        |> List.foldr
-            (\actors acc ->
-                Dict.filter
-                    (\actorId actorValue ->
-                        actorIsCollectible actorValue
+    case actor of
+        Just actor ->
+            [ actor ]
+                |> List.filter isActorPlayer
+                |> List.filterMap getPosition
+                |> List.concatMap
+                    (\position ->
+                        actorsAt position acc
+                            |> Dict.values
                     )
-                    actors
-                    |> Dict.foldr
-                        (\actorId _ acc ->
-                            Dict.remove actorId acc
-                        )
-                        (Debug.log "acc" acc)
-            )
+                |> List.filter actorIsCollectible
+                -- This is transforming a (List Actor) to (Dict Int Actor) which is type alias of Actors
+                |> List.foldr insertActor Dict.empty
+                |> consumeCoinsAndGiveToPlayer actor acc
+
+        Nothing ->
             acc
+
+
+consumeCoinsAndGiveToPlayer : Actor -> Actors -> Actors -> Actors
+consumeCoinsAndGiveToPlayer player acc coinActors =
+    acc
+        |> removeActorsById (getActorIds coinActors)
+        |> updateCoinCount player (getCoinCountFromActors coinActors)
 
 
 addCoinToPlayer : Actors -> Actors
@@ -255,8 +262,8 @@ handleKeyboardEvent keycode actors =
                     case component of
                         KeyboardComponent ->
                             updateKeyboardComponent keycode actor acc
-                                |> removeEnemiesAtPlayer actor
-                                |> collectCoinsAtPlayer actor
+                                |> removeEnemiesAtPlayer (getPlayerActor acc)
+                                |> collectCoinsAtPlayer (getPlayerActor acc)
 
                         _ ->
                             acc
@@ -401,6 +408,55 @@ getPosition actor =
         |> List.head
 
 
+addCoinsToMoniesCollectedComponent : Int -> Int -> Actor -> Actor
+addCoinsToMoniesCollectedComponent currentCoins additionalCoins actor =
+    (MoniesCollectedComponent (currentCoins + additionalCoins))
+        :: actor.components
+        |> setActorComponents actor
+
+
+getMoniesFromActorOrZero : Actor -> Int
+getMoniesFromActorOrZero actor =
+    actor.components
+        |> List.map getMoniesFromComponentOrZero
+        |> List.sum
+
+
+removeMoniesCollectedComponent : Actor -> Actor
+removeMoniesCollectedComponent actor =
+    List.filter
+        (\c ->
+            case c of
+                MoniesCollectedComponent _ ->
+                    False
+
+                _ ->
+                    True
+        )
+        actor.components
+        |> setActorComponents actor
+
+
+getActorIds : Actors -> List Int
+getActorIds actors =
+    Dict.keys actors
+
+
+removeActorsById : List Int -> Actors -> Actors
+removeActorsById actorIdsToRemove acc =
+    Dict.filter
+        (\actorId _ ->
+            List.member actorId actorIdsToRemove
+                |> not
+        )
+        acc
+
+
+setActorComponents : Actor -> List Component -> Actor
+setActorComponents actor components =
+    { actor | components = components }
+
+
 getMoniesFromPlayer : Actor -> Int
 getMoniesFromPlayer actor =
     List.foldr (+) 0 <| List.map getMoniesFromComponentOrZero actor.components
@@ -424,6 +480,35 @@ getMonies model =
 
         Nothing ->
             0
+
+
+getCoinCountFromActors : Actors -> Int
+getCoinCountFromActors actors =
+    Dict.foldr
+        (\_ actor coins ->
+            if actorIsCollectible actor then
+                coins + 1
+            else
+                coins
+        )
+        0
+        actors
+
+
+updateCoinCount : Actor -> Int -> Actors -> Actors
+updateCoinCount actor coins acc =
+    actor
+        |> removeMoniesCollectedComponent
+        |> addCoinsToMoniesCollectedComponent (getMoniesFromActorOrZero actor) coins
+        |> (flip insertActor) acc
+
+
+insertActor : Actor -> Actors -> Actors
+insertActor actor actors =
+    Dict.insert
+        actor.id
+        actor
+        actors
 
 
 view : Model -> Html Msg
