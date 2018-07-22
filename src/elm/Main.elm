@@ -127,16 +127,12 @@ init =
 
 
 type Msg
-    = NoOp
-    | KeyPressed Keyboard.KeyCode
+    = KeyPressed Keyboard.KeyCode
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
-            ( model, Cmd.none )
-
         KeyPressed keycode ->
             { model | actors = handleKeyboardEvent keycode model.actors } ! []
 
@@ -195,7 +191,7 @@ removeEnemiesAtPlayer actorId acc =
                 |> List.foldr
                     (\actors acc ->
                         Dict.filter
-                            (\actorId actorValue ->
+                            (\_ actorValue ->
                                 actorIsEnemy actorValue
                             )
                             actors
@@ -237,29 +233,6 @@ consumeCoinsAndGiveToPlayer player acc coinActors =
     acc
         |> removeActorsById (getActorIds coinActors)
         |> updateCoinCount player (getCoinCountFromActors coinActors)
-
-
-addCoinToPlayer : Actors -> Actors
-addCoinToPlayer actors =
-    Dict.map
-        (\key actor ->
-            if isActorPlayer actor then
-                let
-                    newComponents =
-                        List.filter
-                            (\c ->
-                                isMoniesCollectedComponent c |> not
-                            )
-                            actor.components
-
-                    newMonies =
-                        getMoniesFromPlayer actor + 1
-                in
-                    { actor | components = (MoniesCollectedComponent newMonies) :: newComponents }
-            else
-                actor
-        )
-        actors
 
 
 handleKeyboardEvent : Keyboard.KeyCode -> Actors -> Actors
@@ -306,7 +279,7 @@ moveFromKeyCode keycode position =
 actorsAt : Position -> Actors -> Actors
 actorsAt position actors =
     Dict.filter
-        (\actorId actor ->
+        (\_ actor ->
             getPosition actor
                 |> Maybe.andThen
                     (\actorPos ->
@@ -335,7 +308,7 @@ updateKeyboardComponent keycode actor acc =
                             )
                             actor.components
                 in
-                    Just { actor | components = (TransformComponent position) :: newComponents }
+                    Just { actor | components = TransformComponent position :: newComponents }
             )
         |> Maybe.andThen
             (\actor ->
@@ -382,16 +355,6 @@ isCoinComponent component =
             False
 
 
-isMoniesCollectedComponent : Component -> Bool
-isMoniesCollectedComponent component =
-    case component of
-        MoniesCollectedComponent _ ->
-            True
-
-        _ ->
-            False
-
-
 isTransformComponent : Component -> Bool
 isTransformComponent component =
     case component of
@@ -419,7 +382,7 @@ getPosition actor =
 
 addCoinsToMoniesCollectedComponent : Int -> Int -> Actor -> Actor
 addCoinsToMoniesCollectedComponent currentCoins additionalCoins actor =
-    (MoniesCollectedComponent (currentCoins + additionalCoins))
+    MoniesCollectedComponent (currentCoins + additionalCoins)
         :: actor.components
         |> setActorComponents actor
 
@@ -466,11 +429,6 @@ setActorComponents actor components =
     { actor | components = components }
 
 
-getMoniesFromPlayer : Actor -> Int
-getMoniesFromPlayer actor =
-    List.foldr (+) 0 <| List.map getMoniesFromComponentOrZero actor.components
-
-
 getMoniesFromComponentOrZero : Component -> Int
 getMoniesFromComponentOrZero component =
     case component of
@@ -509,7 +467,7 @@ updateCoinCount actor coins acc =
     actor
         |> removeMoniesCollectedComponent
         |> addCoinsToMoniesCollectedComponent (getMoniesFromActorOrZero actor) coins
-        |> (flip insertActor) acc
+        |> flip insertActor acc
 
 
 insertActor : Actor -> Actors -> Actors
@@ -547,23 +505,23 @@ view model =
                                     |> List.concat
                                     |> Maybe.Extra.values
                                     |> List.filter
-                                        (\( a, d ) ->
+                                        (\( _, d ) ->
                                             d.x == x && d.y == y
                                         )
                                     |> List.head
                                     |> Maybe.andThen
                                         (\( a, _ ) ->
-                                            Just <| text <| "[" ++ (toString (a.id)) ++ "]"
+                                            Just <| text <| "[" ++ toString a.id ++ "]"
                                         )
                                     |> Maybe.withDefault (text "[]")
                             )
                         |> div []
                 )
             |> div []
-        , text ("Monies : " ++ (toString (getMonies model)) ++ "!")
+        , text ("Monies : " ++ toString (getMonies model) ++ "!")
         ]
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Keyboard.downs KeyPressed
