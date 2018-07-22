@@ -51,6 +51,16 @@ type KeyCodes
     | DownArrow
 
 
+numberRows : Int
+numberRows =
+    19
+
+
+numberColumns : Int
+numberColumns =
+    19
+
+
 leftArrow : Int
 leftArrow =
     37
@@ -264,13 +274,13 @@ moveFromKeyCode keycode position =
             { x = max 0 (position.x - 1), y = position.y }
 
         Just RightArrow ->
-            { x = min 2 (position.x + 1), y = position.y }
+            { x = min numberColumns (position.x + 1), y = position.y }
 
         Just UpArrow ->
             { x = position.x, y = max 0 (position.y - 1) }
 
         Just DownArrow ->
-            { x = position.x, y = min 2 (position.y + 1) }
+            { x = position.x, y = min numberRows (position.y + 1) }
 
         _ ->
             position
@@ -481,10 +491,10 @@ insertActor actor actors =
 view : Model -> Html Msg
 view model =
     div []
-        [ List.range 0 2
+        [ List.range 0 numberRows
             |> List.map
                 (\y ->
-                    List.range 0 2
+                    List.range 0 numberColumns
                         |> List.map
                             (\x ->
                                 -- text (toString ( x, y ))
