@@ -5,6 +5,7 @@ import Maybe.Extra
 import Keyboard
 import Dict exposing (Dict)
 import Swiper
+import Debug
 
 
 type alias Model =
@@ -226,10 +227,11 @@ update msg model =
                         SwipeDown
                     else
                         SwipeUnknown
+
+                _ =
+                    Debug.log "Swipe Event!"
             in
-                -- ( { model | swipingState = newState, userSwipedLeft = swipedLeft }, Cmd.none )
-                -- { model | actors = handleSwipeEvent model.actors } ! []
-                ( model, Cmd.none )
+                ( { actors = model.actors, swipingState = newState, lastSwiped = swipeType }, Cmd.none )
 
 
 getPlayerActorFromId : Int -> Actors -> Maybe Actor
