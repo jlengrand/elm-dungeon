@@ -27,6 +27,10 @@ type alias WeaponDurability =
     Int
 
 
+type alias Strength =
+    Int
+
+
 type alias Position =
     { x : Int
     , y : Int
@@ -35,7 +39,7 @@ type alias Position =
 
 type ObjectTypeData
     = Player
-    | Enemy
+    | Enemy Strength
     | Coin
     | Weapon WeaponDurability
 
@@ -141,7 +145,7 @@ init =
               , { id = 2
                 , components =
                     [ TransformComponent { x = 1, y = 1 }
-                    , ObjectTypeComponent Enemy
+                    , ObjectTypeComponent (Enemy 2)
                     ]
                 }
               )
@@ -166,6 +170,14 @@ init =
                 , components =
                     [ TransformComponent { x = 0, y = 2 }
                     , ObjectTypeComponent (Weapon 1)
+                    ]
+                }
+              )
+            , ( 6
+              , { id = 6
+                , components =
+                    [ TransformComponent { x = 0, y = 1 }
+                    , ObjectTypeComponent (Enemy 6)
                     ]
                 }
               )
@@ -426,7 +438,7 @@ isWeaponComponent component =
 isEnemyComponent : Component -> Bool
 isEnemyComponent component =
     case component of
-        ObjectTypeComponent Enemy ->
+        ObjectTypeComponent (Enemy _) ->
             True
 
         _ ->
@@ -662,12 +674,29 @@ getHealthCountFromActors actors =
     Dict.foldr
         (\_ actor health ->
             if actorIsEnemy actor then
-                health + 1
+                health + (getEnemyStrengthFromActorOrZero actor)
             else
                 health
         )
         0
         actors
+
+
+getEnemyStrengthFromActorOrZero : Actor -> Int
+getEnemyStrengthFromActorOrZero actor =
+    actor.components
+        |> List.map getEnemyStrengthFromComponentOrZero
+        |> List.sum
+
+
+getEnemyStrengthFromComponentOrZero : Component -> Int
+getEnemyStrengthFromComponentOrZero component =
+    case component of
+        ObjectTypeComponent (Enemy strength) ->
+            strength
+
+        _ ->
+            0
 
 
 getWeaponDurabilityFromActors : Actors -> Int
