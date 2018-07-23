@@ -11,6 +11,10 @@ type alias Model =
     }
 
 
+type alias Health =
+    Int
+
+
 type alias Monies =
     Int
 
@@ -31,6 +35,7 @@ type Component
     = TransformComponent Position
     | KeyboardComponent
     | MoniesCollectedComponent Monies
+    | HealthComponent Health
     | ObjectTypeComponent ObjectTypeData
 
 
@@ -49,6 +54,11 @@ type KeyCodes
     | UpArrow
     | RightArrow
     | DownArrow
+
+
+startHealth : Int
+startHealth =
+    10
 
 
 numberRows : Int
@@ -112,6 +122,7 @@ init =
                     , KeyboardComponent
                     , ObjectTypeComponent Player
                     , MoniesCollectedComponent 0
+                    , HealthComponent startHealth
                     ]
                 }
               )
@@ -449,11 +460,31 @@ getMoniesFromComponentOrZero component =
             0
 
 
+getHealthFromComponentOrZero : Component -> Int
+getHealthFromComponentOrZero component =
+    case component of
+        HealthComponent health ->
+            health
+
+        _ ->
+            0
+
+
 getMonies : Model -> Int
 getMonies model =
     case getPlayerActor model.actors of
         Just actor ->
             List.foldr (+) 0 <| List.map getMoniesFromComponentOrZero actor.components
+
+        Nothing ->
+            0
+
+
+getHealth : Model -> Int
+getHealth model =
+    case getPlayerActor model.actors of
+        Just actor ->
+            List.foldr (+) 0 <| List.map getHealthFromComponentOrZero actor.components
 
         Nothing ->
             0
@@ -528,7 +559,8 @@ view model =
                         |> div []
                 )
             |> div []
-        , text ("Monies : " ++ toString (getMonies model) ++ "!")
+        , div [] [ text ("Monies : " ++ toString (getMonies model) ++ "!") ]
+        , div [] [ text ("Current health : " ++ toString (getHealth model) ++ "!") ]
         ]
 
 
