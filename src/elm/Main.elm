@@ -779,7 +779,7 @@ insertActor actor actors =
 
 view : Model -> Html Msg
 view model =
-    div []
+    div ([] ++ Swiper.onSwipeEvents Swiped)
         [ List.range 0 numberRows
             |> List.map
                 (\y ->
