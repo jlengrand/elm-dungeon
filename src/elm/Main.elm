@@ -4,14 +4,10 @@ import Html exposing (Html, div, text)
 import Maybe.Extra
 import Keyboard
 import Dict exposing (Dict)
-import Swiper
-import Debug
 
 
 type alias Model =
     { actors : Dict Int Actor
-    , swipingState : Swiper.SwipingState
-    , lastSwiped : SwipeStates
     }
 
 
@@ -47,7 +43,6 @@ type ObjectTypeData
 type Component
     = TransformComponent Position
     | KeyboardComponent
-    | SwipeComponent
     | MoniesCollectedComponent Monies
     | HealthComponent Health
     | WeaponComponent PlayerWeaponDurability
@@ -69,15 +64,6 @@ type KeyCodes
     | UpArrow
     | RightArrow
     | DownArrow
-
-
-type SwipeStates
-    = SwipeUp
-    | SwipeDown
-    | SwipeLeft
-    | SwipeRight
-    | SwipeUnknown
-    | SwipeInit
 
 
 startHealth : Int
@@ -144,7 +130,6 @@ init =
                 , components =
                     [ TransformComponent { x = 1, y = 2 }
                     , KeyboardComponent
-                    , SwipeComponent
                     , ObjectTypeComponent Player
                     , MoniesCollectedComponent 0
                     , HealthComponent startHealth
@@ -185,15 +170,12 @@ init =
                 }
               )
             ]
-    , swipingState = Swiper.initialSwipingState
-    , lastSwiped = SwipeInit
     }
         ! []
 
 
 type Msg
     = KeyPressed Keyboard.KeyCode
-    | Swiped Swiper.SwipeEvent
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -201,37 +183,6 @@ update msg model =
     case msg of
         KeyPressed keycode ->
             { model | actors = handleKeyboardEvent keycode model.actors } ! []
-
-        Swiped evt ->
-            let
-                ( newState, swipedLeft ) =
-                    Swiper.hasSwipedLeft evt model.swipingState
-
-                ( _, swipedRight ) =
-                    Swiper.hasSwipedRight evt model.swipingState
-
-                ( _, swipedUp ) =
-                    Swiper.hasSwipedUp evt model.swipingState
-
-                ( _, swipedDown ) =
-                    Swiper.hasSwipedDown evt model.swipingState
-
-                swipeType =
-                    if swipedLeft then
-                        SwipeLeft
-                    else if swipedRight then
-                        SwipeRight
-                    else if swipedUp then
-                        SwipeUp
-                    else if swipedDown then
-                        SwipeDown
-                    else
-                        SwipeUnknown
-
-                _ =
-                    Debug.log "Swipe Event!"
-            in
-                ( { actors = model.actors, swipingState = newState, lastSwiped = swipeType }, Cmd.none )
 
 
 getPlayerActorFromId : Int -> Actors -> Maybe Actor
@@ -779,7 +730,7 @@ insertActor actor actors =
 
 view : Model -> Html Msg
 view model =
-    div ([] ++ Swiper.onSwipeEvents Swiped)
+    div []
         [ List.range 0 numberRows
             |> List.map
                 (\y ->
@@ -819,7 +770,6 @@ view model =
         , div [] [ text ("Monies : " ++ toString (getMonies model) ++ "!") ]
         , div [] [ text ("Current health : " ++ toString (getHealth model) ++ "!") ]
         , div [] [ text ("Weapon durability : " ++ toString (getPlayerWeaponDurability model) ++ "!") ]
-        , div [] [ text ("Last Swipe : " ++ toString (model.lastSwiped) ++ "!") ]
         ]
 
 
