@@ -32,6 +32,7 @@ It will open a browser
 
 * Mobile friendly controls
 * Mobile friendly view
+* Actually use weapons in fights
 * Detroy WeaponComponents instead of setting the durability to 0. This will allow to change the weapon type, ...
 * Refactor duplications
 * Traps
