@@ -73,12 +73,12 @@ startHealth =
 
 numberRows : Int
 numberRows =
-    19
+    4
 
 
 numberColumns : Int
 numberColumns =
-    19
+    4
 
 
 leftArrow : Int

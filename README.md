@@ -30,7 +30,8 @@ It will open a browser
 
 ## Stuff still to be implemented (Spoiler : Almost everything)
 
-* We shouldn't update the durability of a weapon (two swords don't make a twice a much powerful sword...)
+* Mobile friendly controls
+* Mobile friendly view
 * Detroy WeaponComponents instead of setting the durability to 0. This will allow to change the weapon type, ...
 * Refactor duplications
 * Traps
