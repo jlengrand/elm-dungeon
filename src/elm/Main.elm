@@ -19,6 +19,10 @@ type alias Monies =
     Int
 
 
+type alias WeaponDurability =
+    Int
+
+
 type alias Position =
     { x : Int
     , y : Int
@@ -29,6 +33,7 @@ type ObjectTypeData
     = Player
     | Enemy
     | Coin
+    | Weapon
 
 
 type Component
@@ -36,6 +41,7 @@ type Component
     | KeyboardComponent
     | MoniesCollectedComponent Monies
     | HealthComponent Health
+    | WeaponComponent WeaponDurability
     | ObjectTypeComponent ObjectTypeData
 
 
@@ -123,6 +129,7 @@ init =
                     , ObjectTypeComponent Player
                     , MoniesCollectedComponent 0
                     , HealthComponent startHealth
+                    , WeaponComponent 0
                     ]
                 }
               )
@@ -139,6 +146,14 @@ init =
                 , components =
                     [ TransformComponent { x = 0, y = 0 }
                     , ObjectTypeComponent Coin
+                    ]
+                }
+              )
+            , ( 4
+              , { id = 4
+                , components =
+                    [ TransformComponent { x = 2, y = 2 }
+                    , ObjectTypeComponent Weapon
                     ]
                 }
               )
@@ -178,10 +193,6 @@ getPlayerActor actors =
         |> Maybe.map Tuple.second
 
 
-
--- |> Tuple.second
-
-
 isActorPlayer : Actor -> Bool
 isActorPlayer actor =
     List.filter
@@ -219,13 +230,6 @@ removeEnemiesAtPlayer actorId acc =
             acc
 
 
-killEnemyAndHurtPlayer : Actor -> Actors -> Actors -> Actors
-killEnemyAndHurtPlayer player acc enemyActors =
-    acc
-        |> removeActorsById (getActorIds enemyActors)
-        |> updateHealthCount player (getHealthCountFromActors enemyActors)
-
-
 collectCoinsAtPlayer : Int -> Actors -> Actors
 collectCoinsAtPlayer actorId acc =
     case getPlayerActorFromId actorId acc of
@@ -247,6 +251,41 @@ collectCoinsAtPlayer actorId acc =
             acc
 
 
+grabWeaponsAtPlayer : Int -> Actors -> Actors
+grabWeaponsAtPlayer actorId acc =
+    case getPlayerActorFromId actorId acc of
+        Just actor ->
+            [ actor ]
+                |> List.filter isActorPlayer
+                |> List.filterMap getPosition
+                |> List.concatMap
+                    (\position ->
+                        actorsAt position acc
+                            |> Dict.values
+                    )
+                |> List.filter actorIsWeapon
+                -- This is transforming a (List Actor) to (Dict Int Actor) which is type alias of Actors
+                |> List.foldr insertActor Dict.empty
+                |> grabWeaponAndGiveToPlayer actor acc
+
+        Nothing ->
+            acc
+
+
+grabWeaponAndGiveToPlayer : Actor -> Actors -> Actors -> Actors
+grabWeaponAndGiveToPlayer player acc weaponActors =
+    acc
+        |> removeActorsById (getActorIds weaponActors)
+        |> updateWeaponDurabilityCount player (getWeaponDurabilityFromActors weaponActors)
+
+
+killEnemyAndHurtPlayer : Actor -> Actors -> Actors -> Actors
+killEnemyAndHurtPlayer player acc enemyActors =
+    acc
+        |> removeActorsById (getActorIds enemyActors)
+        |> updateHealthCount player (getHealthCountFromActors enemyActors)
+
+
 consumeCoinsAndGiveToPlayer : Actor -> Actors -> Actors -> Actors
 consumeCoinsAndGiveToPlayer player acc coinActors =
     acc
@@ -265,6 +304,7 @@ handleKeyboardEvent keycode actors =
                             updateKeyboardComponent keycode actor acc
                                 |> removeEnemiesAtPlayer actorId
                                 |> collectCoinsAtPlayer actorId
+                                |> grabWeaponsAtPlayer actorId
 
                         _ ->
                             acc
@@ -340,6 +380,13 @@ updateKeyboardComponent keycode actor acc =
         |> Maybe.withDefault acc
 
 
+actorIsWeapon : Actor -> Bool
+actorIsWeapon actor =
+    List.filter isWeaponComponent actor.components
+        |> List.isEmpty
+        |> not
+
+
 actorIsCollectible : Actor -> Bool
 actorIsCollectible actor =
     List.filter isCoinComponent actor.components
@@ -352,6 +399,16 @@ actorIsEnemy actor =
     List.filter isEnemyComponent actor.components
         |> List.isEmpty
         |> not
+
+
+isWeaponComponent : Component -> Bool
+isWeaponComponent component =
+    case component of
+        ObjectTypeComponent Weapon ->
+            True
+
+        _ ->
+            False
 
 
 isEnemyComponent : Component -> Bool
@@ -413,6 +470,20 @@ addDamageToHealthComponent currentHealth damage actor =
         |> setActorComponents actor
 
 
+addWeaponToWeaponComponent : Int -> Int -> Actor -> Actor
+addWeaponToWeaponComponent currentDurability additionalDurability actor =
+    WeaponComponent (currentDurability + additionalDurability)
+        :: actor.components
+        |> setActorComponents actor
+
+
+getWeaponDurabilityFromActorOrZero : Actor -> Int
+getWeaponDurabilityFromActorOrZero actor =
+    actor.components
+        |> List.map getWeaponDurabilityFromComponentOrZero
+        |> List.sum
+
+
 getMoniesFromActorOrZero : Actor -> Int
 getMoniesFromActorOrZero actor =
     actor.components
@@ -433,6 +504,21 @@ removeHealthComponent actor =
         (\c ->
             case c of
                 HealthComponent _ ->
+                    False
+
+                _ ->
+                    True
+        )
+        actor.components
+        |> setActorComponents actor
+
+
+removeWeaponComponent : Actor -> Actor
+removeWeaponComponent actor =
+    List.filter
+        (\c ->
+            case c of
+                WeaponComponent _ ->
                     False
 
                 _ ->
@@ -497,6 +583,16 @@ getHealthFromComponentOrZero component =
             0
 
 
+getWeaponDurabilityFromComponentOrZero : Component -> Int
+getWeaponDurabilityFromComponentOrZero component =
+    case component of
+        WeaponComponent weaponDurability ->
+            weaponDurability
+
+        _ ->
+            0
+
+
 getMonies : Model -> Int
 getMonies model =
     case getPlayerActor model.actors of
@@ -517,6 +613,16 @@ getHealth model =
             0
 
 
+getWeaponDurability : Model -> Int
+getWeaponDurability model =
+    case getPlayerActor model.actors of
+        Just actor ->
+            List.foldr (+) 0 <| List.map getWeaponDurabilityFromComponentOrZero actor.components
+
+        Nothing ->
+            0
+
+
 getHealthCountFromActors : Actors -> Int
 getHealthCountFromActors actors =
     Dict.foldr
@@ -525,6 +631,19 @@ getHealthCountFromActors actors =
                 health + 1
             else
                 health
+        )
+        0
+        actors
+
+
+getWeaponDurabilityFromActors : Actors -> Int
+getWeaponDurabilityFromActors actors =
+    Dict.foldr
+        (\_ actor weaponDurability ->
+            if actorIsWeapon actor then
+                weaponDurability + 1
+            else
+                weaponDurability
         )
         0
         actors
@@ -559,6 +678,14 @@ updateHealthCount actor health acc =
         |> flip insertActor acc
 
 
+updateWeaponDurabilityCount : Actor -> Int -> Actors -> Actors
+updateWeaponDurabilityCount actor weaponDurability acc =
+    actor
+        |> removeWeaponComponent
+        |> addWeaponToWeaponComponent (getWeaponDurabilityFromActorOrZero actor) weaponDurability
+        |> flip insertActor acc
+
+
 insertActor : Actor -> Actors -> Actors
 insertActor actor actors =
     Dict.insert
@@ -576,7 +703,6 @@ view model =
                     List.range 0 numberColumns
                         |> List.map
                             (\x ->
-                                -- text (toString ( x, y ))
                                 Dict.toList model.actors
                                     |> List.map
                                         (\( _, a ) ->
@@ -609,6 +735,7 @@ view model =
             |> div []
         , div [] [ text ("Monies : " ++ toString (getMonies model) ++ "!") ]
         , div [] [ text ("Current health : " ++ toString (getHealth model) ++ "!") ]
+        , div [] [ text ("Weapon durability : " ++ toString (getWeaponDurability model) ++ "!") ]
         ]
 
 
