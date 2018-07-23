@@ -602,7 +602,7 @@ view model =
                                         (\( a, _ ) ->
                                             Just <| text <| "[" ++ toString a.id ++ "]"
                                         )
-                                    |> Maybe.withDefault (text "[]")
+                                    |> Maybe.withDefault (text "[ ]")
                             )
                         |> div []
                 )
