@@ -19,6 +19,10 @@ type alias Monies =
     Int
 
 
+type alias PlayerWeaponDurability =
+    Int
+
+
 type alias WeaponDurability =
     Int
 
@@ -33,7 +37,7 @@ type ObjectTypeData
     = Player
     | Enemy
     | Coin
-    | Weapon
+    | Weapon WeaponDurability
 
 
 type Component
@@ -41,7 +45,7 @@ type Component
     | KeyboardComponent
     | MoniesCollectedComponent Monies
     | HealthComponent Health
-    | WeaponComponent WeaponDurability
+    | WeaponComponent PlayerWeaponDurability
     | ObjectTypeComponent ObjectTypeData
 
 
@@ -153,7 +157,15 @@ init =
               , { id = 4
                 , components =
                     [ TransformComponent { x = 2, y = 2 }
-                    , ObjectTypeComponent Weapon
+                    , ObjectTypeComponent (Weapon 5)
+                    ]
+                }
+              )
+            , ( 5
+              , { id = 5
+                , components =
+                    [ TransformComponent { x = 0, y = 2 }
+                    , ObjectTypeComponent (Weapon 1)
                     ]
                 }
               )
@@ -276,7 +288,7 @@ grabWeaponAndGiveToPlayer : Actor -> Actors -> Actors -> Actors
 grabWeaponAndGiveToPlayer player acc weaponActors =
     acc
         |> removeActorsById (getActorIds weaponActors)
-        |> updateWeaponDurabilityCount player (getWeaponDurabilityFromActors weaponActors)
+        |> updatePlayerWeaponDurabilityCount player (getWeaponDurabilityFromActors weaponActors)
 
 
 killEnemyAndHurtPlayer : Actor -> Actors -> Actors -> Actors
@@ -404,7 +416,7 @@ actorIsEnemy actor =
 isWeaponComponent : Component -> Bool
 isWeaponComponent component =
     case component of
-        ObjectTypeComponent Weapon ->
+        ObjectTypeComponent (Weapon _) ->
             True
 
         _ ->
@@ -472,15 +484,27 @@ addDamageToHealthComponent currentHealth damage actor =
 
 addWeaponToWeaponComponent : Int -> Int -> Actor -> Actor
 addWeaponToWeaponComponent currentDurability additionalDurability actor =
-    WeaponComponent (currentDurability + additionalDurability)
-        :: actor.components
-        |> setActorComponents actor
+    if currentDurability > additionalDurability then
+        WeaponComponent currentDurability
+            :: actor.components
+            |> setActorComponents actor
+    else
+        WeaponComponent additionalDurability
+            :: actor.components
+            |> setActorComponents actor
 
 
 getWeaponDurabilityFromActorOrZero : Actor -> Int
 getWeaponDurabilityFromActorOrZero actor =
     actor.components
         |> List.map getWeaponDurabilityFromComponentOrZero
+        |> List.sum
+
+
+getPlayerWeaponDurabilityFromActorOrZero : Actor -> Int
+getPlayerWeaponDurabilityFromActorOrZero actor =
+    actor.components
+        |> List.map getPlayerWeaponDurabilityFromComponentOrZero
         |> List.sum
 
 
@@ -586,6 +610,16 @@ getHealthFromComponentOrZero component =
 getWeaponDurabilityFromComponentOrZero : Component -> Int
 getWeaponDurabilityFromComponentOrZero component =
     case component of
+        ObjectTypeComponent (Weapon durability) ->
+            durability
+
+        _ ->
+            0
+
+
+getPlayerWeaponDurabilityFromComponentOrZero : Component -> Int
+getPlayerWeaponDurabilityFromComponentOrZero component =
+    case component of
         WeaponComponent weaponDurability ->
             weaponDurability
 
@@ -613,11 +647,11 @@ getHealth model =
             0
 
 
-getWeaponDurability : Model -> Int
-getWeaponDurability model =
+getPlayerWeaponDurability : Model -> Int
+getPlayerWeaponDurability model =
     case getPlayerActor model.actors of
         Just actor ->
-            List.foldr (+) 0 <| List.map getWeaponDurabilityFromComponentOrZero actor.components
+            List.foldr (+) 0 <| List.map getPlayerWeaponDurabilityFromComponentOrZero actor.components
 
         Nothing ->
             0
@@ -640,8 +674,8 @@ getWeaponDurabilityFromActors : Actors -> Int
 getWeaponDurabilityFromActors actors =
     Dict.foldr
         (\_ actor weaponDurability ->
-            if actorIsWeapon actor then
-                weaponDurability + 1
+            if actorIsWeapon actor && getWeaponDurabilityFromActorOrZero actor > weaponDurability then
+                getWeaponDurabilityFromActorOrZero actor
             else
                 weaponDurability
         )
@@ -678,11 +712,11 @@ updateHealthCount actor health acc =
         |> flip insertActor acc
 
 
-updateWeaponDurabilityCount : Actor -> Int -> Actors -> Actors
-updateWeaponDurabilityCount actor weaponDurability acc =
+updatePlayerWeaponDurabilityCount : Actor -> Int -> Actors -> Actors
+updatePlayerWeaponDurabilityCount actor weaponDurability acc =
     actor
         |> removeWeaponComponent
-        |> addWeaponToWeaponComponent (getWeaponDurabilityFromActorOrZero actor) weaponDurability
+        |> addWeaponToWeaponComponent (getPlayerWeaponDurabilityFromActorOrZero actor) weaponDurability
         |> flip insertActor acc
 
 
@@ -735,7 +769,7 @@ view model =
             |> div []
         , div [] [ text ("Monies : " ++ toString (getMonies model) ++ "!") ]
         , div [] [ text ("Current health : " ++ toString (getHealth model) ++ "!") ]
-        , div [] [ text ("Weapon durability : " ++ toString (getWeaponDurability model) ++ "!") ]
+        , div [] [ text ("Weapon durability : " ++ toString (getPlayerWeaponDurability model) ++ "!") ]
         ]
 
 
