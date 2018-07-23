@@ -208,13 +208,13 @@ update msg model =
                     Swiper.hasSwipedLeft evt model.swipingState
 
                 ( _, swipedRight ) =
-                    Swiper.hasSwipedLeft evt model.swipingState
+                    Swiper.hasSwipedRight evt model.swipingState
 
                 ( _, swipedUp ) =
-                    Swiper.hasSwipedLeft evt model.swipingState
+                    Swiper.hasSwipedUp evt model.swipingState
 
                 ( _, swipedDown ) =
-                    Swiper.hasSwipedLeft evt model.swipingState
+                    Swiper.hasSwipedDown evt model.swipingState
 
                 swipeType =
                     if swipedLeft then
