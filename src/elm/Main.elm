@@ -205,27 +205,25 @@ removeEnemiesAtPlayer actorId acc =
             [ actor ]
                 |> List.filter isActorPlayer
                 |> List.filterMap getPosition
-                |> List.map
+                |> List.concatMap
                     (\position ->
                         actorsAt position acc
+                            |> Dict.values
                     )
-                |> List.foldr
-                    (\actors acc ->
-                        Dict.filter
-                            (\_ actorValue ->
-                                actorIsEnemy actorValue
-                            )
-                            actors
-                            |> Dict.foldr
-                                (\actorId _ acc ->
-                                    Dict.remove actorId acc
-                                )
-                                acc
-                    )
-                    acc
+                |> List.filter actorIsEnemy
+                -- This is transforming a (List Actor) to (Dict Int Actor) which is type alias of Actors
+                |> List.foldr insertActor Dict.empty
+                |> killEnemyAndHurtPlayer actor acc
 
         Nothing ->
             acc
+
+
+killEnemyAndHurtPlayer : Actor -> Actors -> Actors -> Actors
+killEnemyAndHurtPlayer player acc enemyActors =
+    acc
+        |> removeActorsById (getActorIds enemyActors)
+        |> updateHealthCount player (getHealthCountFromActors enemyActors)
 
 
 collectCoinsAtPlayer : Int -> Actors -> Actors
@@ -408,11 +406,40 @@ addCoinsToMoniesCollectedComponent currentCoins additionalCoins actor =
         |> setActorComponents actor
 
 
+addDamageToHealthComponent : Int -> Int -> Actor -> Actor
+addDamageToHealthComponent currentHealth damage actor =
+    HealthComponent (currentHealth - damage)
+        :: actor.components
+        |> setActorComponents actor
+
+
 getMoniesFromActorOrZero : Actor -> Int
 getMoniesFromActorOrZero actor =
     actor.components
         |> List.map getMoniesFromComponentOrZero
         |> List.sum
+
+
+getHealthFromActorOrZero : Actor -> Int
+getHealthFromActorOrZero actor =
+    actor.components
+        |> List.map getHealthFromComponentOrZero
+        |> List.sum
+
+
+removeHealthComponent : Actor -> Actor
+removeHealthComponent actor =
+    List.filter
+        (\c ->
+            case c of
+                HealthComponent _ ->
+                    False
+
+                _ ->
+                    True
+        )
+        actor.components
+        |> setActorComponents actor
 
 
 removeMoniesCollectedComponent : Actor -> Actor
@@ -490,6 +517,19 @@ getHealth model =
             0
 
 
+getHealthCountFromActors : Actors -> Int
+getHealthCountFromActors actors =
+    Dict.foldr
+        (\_ actor health ->
+            if actorIsEnemy actor then
+                health + 1
+            else
+                health
+        )
+        0
+        actors
+
+
 getCoinCountFromActors : Actors -> Int
 getCoinCountFromActors actors =
     Dict.foldr
@@ -508,6 +548,14 @@ updateCoinCount actor coins acc =
     actor
         |> removeMoniesCollectedComponent
         |> addCoinsToMoniesCollectedComponent (getMoniesFromActorOrZero actor) coins
+        |> flip insertActor acc
+
+
+updateHealthCount : Actor -> Int -> Actors -> Actors
+updateHealthCount actor health acc =
+    actor
+        |> removeHealthComponent
+        |> addDamageToHealthComponent (getHealthFromActorOrZero actor) health
         |> flip insertActor acc
 
 
