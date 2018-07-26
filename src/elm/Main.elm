@@ -70,6 +70,11 @@ type KeyCodes
     | DownArrow
 
 
+enemySymbol : String
+enemySymbol =
+    "&#128126;"
+
+
 startHealth : Int
 startHealth =
     10
@@ -115,6 +120,34 @@ validKeyCodesMap =
         ]
 
 
+componentToPrintSymbol : Component -> Maybe String
+componentToPrintSymbol component =
+    case component of
+        ObjectTypeComponent Player ->
+            Just "P"
+
+        ObjectTypeComponent (Enemy _) ->
+            Just "E"
+
+        ObjectTypeComponent Coin ->
+            Just "C"
+
+        ObjectTypeComponent (Weapon _) ->
+            Just "W"
+
+        _ ->
+            Maybe.Nothing
+
+
+actorToPrintSymbol : Actor -> String
+actorToPrintSymbol actor =
+    actor.components
+        |> List.filterMap
+            componentToPrintSymbol
+        |> List.head
+        |> Maybe.withDefault "X"
+
+
 main : Program Never Model Msg
 main =
     Html.program
@@ -153,7 +186,7 @@ init =
               , { id = 3
                 , components =
                     [ TransformComponent { x = 0, y = 0 }
-                    , ObjectTypeComponent Coin
+                    , ObjectTypeComponent (Coin)
                     ]
                 }
               )
@@ -717,12 +750,29 @@ getCoinCountFromActors actors =
     Dict.foldr
         (\_ actor coins ->
             if actorIsCollectible actor then
-                coins + 1
+                coins + getCoinValueFromActor actor
             else
                 coins
         )
         0
         actors
+
+
+getCoinValueFromActor : Actor -> Int
+getCoinValueFromActor actor =
+    actor.components
+        |> List.map getCoinValueFromComponentOrZero
+        |> List.sum
+
+
+getCoinValueFromComponentOrZero : Component -> Int
+getCoinValueFromComponentOrZero component =
+    case component of
+        ObjectTypeComponent Coin ->
+            1
+
+        _ ->
+            0
 
 
 updateCoinCount : Actor -> Int -> Actors -> Actors
@@ -789,7 +839,7 @@ view model =
                                     |> List.head
                                     |> Maybe.andThen
                                         (\( a, _ ) ->
-                                            Just <| text <| "[" ++ toString a.id ++ "]"
+                                            Just <| text <| "[" ++ actorToPrintSymbol a ++ "]"
                                         )
                                     |> Maybe.withDefault (text "[ ]")
                             )
