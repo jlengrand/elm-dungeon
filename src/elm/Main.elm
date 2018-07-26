@@ -1,9 +1,11 @@
 module Main exposing (main)
 
-import Html exposing (Html, div, text)
+import Html exposing (Html, div, text, span)
 import Maybe.Extra
 import Keyboard
 import Dict exposing (Dict)
+import Json.Encode exposing (string)
+import Html.Attributes exposing (property)
 
 
 type alias Model =
@@ -72,7 +74,22 @@ type KeyCodes
 
 enemySymbol : String
 enemySymbol =
-    "&#128126;"
+    "👾"
+
+
+coinSymbol : String
+coinSymbol =
+    "💰"
+
+
+playerSymbol : String
+playerSymbol =
+    "👩\x1F3FB\x200D🚀"
+
+
+weaponSymbol : String
+weaponSymbol =
+    "🔫"
 
 
 startHealth : Int
@@ -124,16 +141,16 @@ componentToPrintSymbol : Component -> Maybe String
 componentToPrintSymbol component =
     case component of
         ObjectTypeComponent Player ->
-            Just "P"
+            Just playerSymbol
 
         ObjectTypeComponent (Enemy _) ->
-            Just "E"
+            Just enemySymbol
 
         ObjectTypeComponent Coin ->
-            Just "C"
+            Just coinSymbol
 
         ObjectTypeComponent (Weapon _) ->
-            Just "W"
+            Just weaponSymbol
 
         _ ->
             Maybe.Nothing
@@ -839,7 +856,9 @@ view model =
                                     |> List.head
                                     |> Maybe.andThen
                                         (\( a, _ ) ->
-                                            Just <| text <| "[" ++ actorToPrintSymbol a ++ "]"
+                                            Just <| span [ property "innerHTML" (string ("[" ++ actorToPrintSymbol a ++ "]")) ] []
+                                         -- Just <| text <| "[" ++ actorToPrintSymbol a ++ "]"
+                                         -- Just <| span [ property "innerHTML" (string "[&#128126;]") ] []
                                         )
                                     |> Maybe.withDefault (text "[ ]")
                             )
