@@ -151,7 +151,7 @@ componentToPrintSymbol component =
             Just enemySymbol
 
         ObjectTypeComponent (Coin value) ->
-            Just (toString value)
+            Just coinSymbol
 
         ObjectTypeComponent (Weapon _) ->
             Just weaponSymbol
