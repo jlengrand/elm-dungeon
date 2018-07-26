@@ -33,6 +33,10 @@ type alias Strength =
     Int
 
 
+type alias CoinValue =
+    Int
+
+
 type alias Position =
     { x : Int
     , y : Int
@@ -42,7 +46,7 @@ type alias Position =
 type ObjectTypeData
     = Player
     | Enemy Strength
-    | Coin
+    | Coin CoinValue
     | Weapon WeaponDurability
 
 
@@ -146,8 +150,8 @@ componentToPrintSymbol component =
         ObjectTypeComponent (Enemy _) ->
             Just enemySymbol
 
-        ObjectTypeComponent Coin ->
-            Just coinSymbol
+        ObjectTypeComponent (Coin value) ->
+            Just (toString value)
 
         ObjectTypeComponent (Weapon _) ->
             Just weaponSymbol
@@ -203,7 +207,7 @@ init =
               , { id = 3
                 , components =
                     [ TransformComponent { x = 0, y = 0 }
-                    , ObjectTypeComponent (Coin)
+                    , ObjectTypeComponent (Coin 4)
                     ]
                 }
               )
@@ -498,7 +502,7 @@ isEnemyComponent component =
 isCoinComponent : Component -> Bool
 isCoinComponent component =
     case component of
-        ObjectTypeComponent Coin ->
+        ObjectTypeComponent (Coin _) ->
             True
 
         _ ->
@@ -785,8 +789,8 @@ getCoinValueFromActor actor =
 getCoinValueFromComponentOrZero : Component -> Int
 getCoinValueFromComponentOrZero component =
     case component of
-        ObjectTypeComponent Coin ->
-            1
+        ObjectTypeComponent (Coin value) ->
+            value
 
         _ ->
             0
@@ -857,8 +861,6 @@ view model =
                                     |> Maybe.andThen
                                         (\( a, _ ) ->
                                             Just <| span [ property "innerHTML" (string ("[" ++ actorToPrintSymbol a ++ "]")) ] []
-                                         -- Just <| text <| "[" ++ actorToPrintSymbol a ++ "]"
-                                         -- Just <| span [ property "innerHTML" (string "[&#128126;]") ] []
                                         )
                                     |> Maybe.withDefault (text "[ ]")
                             )
