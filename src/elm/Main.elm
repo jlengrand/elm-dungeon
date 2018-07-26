@@ -5,7 +5,7 @@ import Maybe.Extra
 import Keyboard
 import Dict exposing (Dict)
 import Json.Encode exposing (string)
-import Html.Attributes exposing (property)
+import Html.Attributes exposing (property, id)
 
 
 type alias Model =
@@ -166,7 +166,7 @@ actorToPrintSymbol actor =
         |> List.filterMap
             componentToPrintSymbol
         |> List.head
-        |> Maybe.withDefault "X"
+        |> Maybe.withDefault playerSymbol
 
 
 main : Program Never Model Msg
@@ -830,7 +830,7 @@ insertActor actor actors =
 
 view : Model -> Html Msg
 view model =
-    div []
+    div [ id "game-view" ]
         [ List.range 0 numberRows
             |> List.map
                 (\y ->
@@ -860,13 +860,20 @@ view model =
                                     |> List.head
                                     |> Maybe.andThen
                                         (\( a, _ ) ->
-                                            Just <| span [ property "innerHTML" (string ("[" ++ actorToPrintSymbol a ++ "]")) ] []
+                                            Just <|
+                                                div [ id "cell-view" ]
+                                                    [ span [ property "innerHTML" (string (actorToPrintSymbol a)) ] []
+                                                    ]
                                         )
-                                    |> Maybe.withDefault (text "[ ]")
+                                    |> Maybe.withDefault
+                                        (div
+                                            [ id "cell-view" ]
+                                            []
+                                        )
                             )
-                        |> div []
+                        |> div [ id "row-view" ]
                 )
-            |> div []
+            |> div [ id "cells-view" ]
         , div [] [ text ("Monies : " ++ toString (getMonies model) ++ "!") ]
         , div [] [ text ("Current health : " ++ toString (getHealth model) ++ "!") ]
         , div [] [ text ("Weapon durability : " ++ toString (getPlayerWeaponDurability model) ++ "!") ]

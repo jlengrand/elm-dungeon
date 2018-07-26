@@ -31,7 +31,7 @@ It will open a browser
 ## Stuff still to be implemented (Spoiler : Almost everything)
 
 * Mobile friendly controls
-* Mobile friendly view
+* WIP : Mobile friendly view
 * Add death!
 * Actually use weapons in fights
 * Detroy WeaponComponents instead of setting the durability to 0. This will allow to change the weapon type, ...
