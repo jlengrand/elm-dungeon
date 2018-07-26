@@ -31,15 +31,13 @@ It will open a browser
 ## Stuff still to be implemented (Spoiler : Almost everything)
 
 * Mobile friendly controls
-* WIP : Mobile friendly view
+* Mobile friendly view
 * Add death!
 * Actually use weapons in fights
 * Detroy WeaponComponents instead of setting the durability to 0. This will allow to change the weapon type, ...
 * Refactor duplications
 * Traps
 * Chests
-* Coins have a value (currently always 1)
-* Enemies have a strength (currently always 1)
 * Actual textures
 * Weapon and Enemy types
 * Tile movement system / generator (with increasing difficulty)
