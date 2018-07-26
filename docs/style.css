@@ -24,6 +24,10 @@
     font-size: 5vw;
 }
 
+#game-info{
+    font-size: 200%;
+}
+
 @media (max-width: 1025px) {
     #cells-view{
         width:80vw; /* 20% of the viewport width */

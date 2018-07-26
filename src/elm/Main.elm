@@ -874,9 +874,11 @@ view model =
                         |> div [ id "row-view" ]
                 )
             |> div [ id "cells-view" ]
-        , div [] [ text ("Monies : " ++ toString (getMonies model) ++ "!") ]
-        , div [] [ text ("Current health : " ++ toString (getHealth model) ++ "!") ]
-        , div [] [ text ("Weapon durability : " ++ toString (getPlayerWeaponDurability model) ++ "!") ]
+        , div [ id "game-info" ]
+            [ div [] [ text ("Monies collected : " ++ toString (getMonies model) ++ "!") ]
+            , div [] [ text ("Current health : " ++ toString (getHealth model) ++ "!") ]
+            , div [] [ text ("Weapon durability : " ++ toString (getPlayerWeaponDurability model) ++ "!") ]
+            ]
         ]
 
 
