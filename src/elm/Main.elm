@@ -251,8 +251,8 @@ update msg model =
             { model | actors = handleKeyboardEvent keycode model.actors } ! []
 
 
-getPlayerActorFromId : Int -> Actors -> Maybe Actor
-getPlayerActorFromId actorId actors =
+getActorFromId : Int -> Actors -> Maybe Actor
+getActorFromId actorId actors =
     Dict.filter
         (\_ actor -> actor.id == actorId)
         actors
@@ -289,7 +289,7 @@ isActorPlayer actor =
 
 removeEnemiesAtPlayer : Int -> Actors -> Actors
 removeEnemiesAtPlayer actorId acc =
-    case getPlayerActorFromId actorId acc of
+    case getActorFromId actorId acc of
         Just actor ->
             [ actor ]
                 |> List.filter isActorPlayer
@@ -310,7 +310,7 @@ removeEnemiesAtPlayer actorId acc =
 
 collectCoinsAtPlayer : Int -> Actors -> Actors
 collectCoinsAtPlayer actorId acc =
-    case getPlayerActorFromId actorId acc of
+    case getActorFromId actorId acc of
         Just actor ->
             [ actor ]
                 |> List.filter isActorPlayer
@@ -331,7 +331,7 @@ collectCoinsAtPlayer actorId acc =
 
 grabWeaponsAtPlayer : Int -> Actors -> Actors
 grabWeaponsAtPlayer actorId acc =
-    case getPlayerActorFromId actorId acc of
+    case getActorFromId actorId acc of
         Just actor ->
             [ actor ]
                 |> List.filter isActorPlayer
@@ -460,21 +460,22 @@ updateKeyboardComponent keycode actor acc =
 
 actorIsWeapon : Actor -> Bool
 actorIsWeapon actor =
-    List.filter isWeaponComponent actor.components
-        |> List.isEmpty
-        |> not
+    actorIs isWeaponComponent actor
 
 
 actorIsCollectible : Actor -> Bool
 actorIsCollectible actor =
-    List.filter isCoinComponent actor.components
-        |> List.isEmpty
-        |> not
+    actorIs isCoinComponent actor
 
 
 actorIsEnemy : Actor -> Bool
 actorIsEnemy actor =
-    List.filter isEnemyComponent actor.components
+    actorIs isEnemyComponent actor
+
+
+actorIs : (Component -> Bool) -> Actor -> Bool
+actorIs isComponent actor =
+    List.filter isComponent actor.components
         |> List.isEmpty
         |> not
 
