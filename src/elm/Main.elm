@@ -800,13 +800,13 @@ updatePlayerWeaponDurabilityCount actor weaponDurability acc =
 insertActor : Actor -> Actors -> Actors
 insertActor actor actors =
     if hasActorId actor.id actors then
-        replaceActorInActors actor actors
+        replaceActor actor actors
     else
         actor :: actors
 
 
-replaceActorInActors : Actor -> Actors -> Actors
-replaceActorInActors actor actors =
+replaceActor : Actor -> Actors -> Actors
+replaceActor actor actors =
     List.map
         (\a ->
             if a.id == actor.id then
