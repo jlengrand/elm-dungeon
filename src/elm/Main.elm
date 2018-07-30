@@ -6,6 +6,7 @@ import Keyboard
 import Dict exposing (Dict)
 import Json.Encode exposing (string)
 import Html.Attributes exposing (property, id)
+import Debug
 
 
 type alias Model =
@@ -275,7 +276,6 @@ removeEnemiesAtPlayer actorId acc =
     case getActorFromId actorId acc of
         Just actor ->
             [ actor ]
-                |> List.filter isActorPlayer
                 |> List.filterMap getPosition
                 |> List.concatMap
                     (\position ->
@@ -294,7 +294,6 @@ collectCoinsAtPlayer actorId acc =
     case getActorFromId actorId acc of
         Just actor ->
             [ actor ]
-                |> List.filter isActorPlayer
                 |> List.filterMap getPosition
                 |> List.concatMap
                     (\position ->
@@ -313,7 +312,6 @@ grabWeaponsAtPlayer actorId acc =
     case getActorFromId actorId acc of
         Just actor ->
             [ actor ]
-                |> List.filter isActorPlayer
                 |> List.filterMap getPosition
                 |> List.concatMap
                     (\position ->
@@ -357,8 +355,8 @@ handleKeyboardEvent keycode actors =
                     case component of
                         KeyboardComponent ->
                             updateKeyboardComponent keycode actor acc
-                                |> removeEnemiesAtPlayer actor.id
                                 |> collectCoinsAtPlayer actor.id
+                                |> removeEnemiesAtPlayer actor.id
                                 |> grabWeaponsAtPlayer actor.id
 
                         _ ->
@@ -801,6 +799,14 @@ updatePlayerWeaponDurabilityCount actor weaponDurability acc =
 
 insertActor : Actor -> Actors -> Actors
 insertActor actor actors =
+    if hasActorId actor.id actors then
+        replaceActorInActors actor actors
+    else
+        actor :: actors
+
+
+replaceActorInActors : Actor -> Actors -> Actors
+replaceActorInActors actor actors =
     List.map
         (\a ->
             if a.id == actor.id then
@@ -809,6 +815,15 @@ insertActor actor actors =
                 a
         )
         actors
+
+
+hasActorId : Int -> Actors -> Bool
+hasActorId actorId actors =
+    List.filter
+        (\actor -> actor.id == actorId)
+        actors
+        |> List.isEmpty
+        |> not
 
 
 view : Model -> Html Msg
