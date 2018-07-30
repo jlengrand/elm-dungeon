@@ -819,11 +819,9 @@ replaceActor actor actors =
 
 hasActorId : Int -> Actors -> Bool
 hasActorId actorId actors =
-    List.filter
+    List.any
         (\actor -> actor.id == actorId)
         actors
-        |> List.isEmpty
-        |> not
 
 
 view : Model -> Html Msg
