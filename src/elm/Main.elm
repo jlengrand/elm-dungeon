@@ -9,7 +9,7 @@ import Html.Attributes exposing (property, id)
 
 
 type alias Model =
-    { actors : Dict Int Actor
+    { actors : Actors
     }
 
 
@@ -60,7 +60,7 @@ type Component
 
 
 type alias Actors =
-    Dict Int Actor
+    List Actor
 
 
 type alias Actor =
@@ -182,60 +182,47 @@ main =
 init : ( Model, Cmd Msg )
 init =
     { actors =
-        Dict.fromList
-            [ ( 1
-              , { id = 1
-                , components =
-                    [ TransformComponent { x = 1, y = 2 }
-                    , KeyboardComponent
-                    , ObjectTypeComponent Player
-                    , MoniesCollectedComponent 0
-                    , HealthComponent startHealth
-                    , WeaponComponent 0
-                    ]
-                }
-              )
-            , ( 2
-              , { id = 2
-                , components =
-                    [ TransformComponent { x = 1, y = 1 }
-                    , ObjectTypeComponent (Enemy 2)
-                    ]
-                }
-              )
-            , ( 3
-              , { id = 3
-                , components =
-                    [ TransformComponent { x = 0, y = 0 }
-                    , ObjectTypeComponent (Coin 4)
-                    ]
-                }
-              )
-            , ( 4
-              , { id = 4
-                , components =
-                    [ TransformComponent { x = 2, y = 2 }
-                    , ObjectTypeComponent (Weapon 5)
-                    ]
-                }
-              )
-            , ( 5
-              , { id = 5
-                , components =
-                    [ TransformComponent { x = 0, y = 2 }
-                    , ObjectTypeComponent (Weapon 1)
-                    ]
-                }
-              )
-            , ( 6
-              , { id = 6
-                , components =
-                    [ TransformComponent { x = 0, y = 1 }
-                    , ObjectTypeComponent (Enemy 6)
-                    ]
-                }
-              )
-            ]
+        [ { id = 1
+          , components =
+                [ TransformComponent { x = 1, y = 2 }
+                , KeyboardComponent
+                , ObjectTypeComponent Player
+                , MoniesCollectedComponent 0
+                , HealthComponent startHealth
+                , WeaponComponent 0
+                ]
+          }
+        , { id = 2
+          , components =
+                [ TransformComponent { x = 1, y = 1 }
+                , ObjectTypeComponent (Enemy 2)
+                ]
+          }
+        , { id = 3
+          , components =
+                [ TransformComponent { x = 0, y = 0 }
+                , ObjectTypeComponent (Coin 4)
+                ]
+          }
+        , { id = 4
+          , components =
+                [ TransformComponent { x = 2, y = 2 }
+                , ObjectTypeComponent (Weapon 5)
+                ]
+          }
+        , { id = 5
+          , components =
+                [ TransformComponent { x = 0, y = 2 }
+                , ObjectTypeComponent (Weapon 1)
+                ]
+          }
+        , { id = 6
+          , components =
+                [ TransformComponent { x = 0, y = 1 }
+                , ObjectTypeComponent (Enemy 6)
+                ]
+          }
+        ]
     }
         ! []
 
@@ -253,22 +240,18 @@ update msg model =
 
 getActorFromId : Int -> Actors -> Maybe Actor
 getActorFromId actorId actors =
-    Dict.filter
-        (\_ actor -> actor.id == actorId)
+    List.filter
+        (\actor -> actor.id == actorId)
         actors
-        |> Dict.toList
         |> List.head
-        |> Maybe.map Tuple.second
 
 
 getPlayerActor : Actors -> Maybe Actor
 getPlayerActor actors =
-    Dict.filter
-        (\_ actor -> isActorPlayer actor)
+    List.filter
+        (\actor -> isActorPlayer actor)
         actors
-        |> Dict.toList
         |> List.head
-        |> Maybe.map Tuple.second
 
 
 isActorPlayer : Actor -> Bool
@@ -297,11 +280,9 @@ removeEnemiesAtPlayer actorId acc =
                 |> List.concatMap
                     (\position ->
                         actorsAt position acc
-                            |> Dict.values
                     )
                 |> List.filter actorIsEnemy
-                -- This is transforming a (List Actor) to (Dict Int Actor) which is type alias of Actors
-                |> List.foldr insertActor Dict.empty
+                |> List.foldr insertActor []
                 |> killEnemyAndHurtPlayer actor acc
 
         Nothing ->
@@ -318,11 +299,9 @@ collectCoinsAtPlayer actorId acc =
                 |> List.concatMap
                     (\position ->
                         actorsAt position acc
-                            |> Dict.values
                     )
                 |> List.filter actorIsCollectible
-                -- This is transforming a (List Actor) to (Dict Int Actor) which is type alias of Actors
-                |> List.foldr insertActor Dict.empty
+                |> List.foldr insertActor []
                 |> consumeCoinsAndGiveToPlayer actor acc
 
         Nothing ->
@@ -339,11 +318,9 @@ grabWeaponsAtPlayer actorId acc =
                 |> List.concatMap
                     (\position ->
                         actorsAt position acc
-                            |> Dict.values
                     )
                 |> List.filter actorIsWeapon
-                -- This is transforming a (List Actor) to (Dict Int Actor) which is type alias of Actors
-                |> List.foldr insertActor Dict.empty
+                |> List.foldr insertActor []
                 |> grabWeaponAndGiveToPlayer actor acc
 
         Nothing ->
@@ -374,15 +351,15 @@ consumeCoinsAndGiveToPlayer player acc coinActors =
 handleKeyboardEvent : Keyboard.KeyCode -> Actors -> Actors
 handleKeyboardEvent keycode actors =
     List.foldr
-        (\( actorId, actor ) acc ->
+        (\actor acc ->
             List.foldr
                 (\component acc ->
                     case component of
                         KeyboardComponent ->
                             updateKeyboardComponent keycode actor acc
-                                |> removeEnemiesAtPlayer actorId
-                                |> collectCoinsAtPlayer actorId
-                                |> grabWeaponsAtPlayer actorId
+                                |> removeEnemiesAtPlayer actor.id
+                                |> collectCoinsAtPlayer actor.id
+                                |> grabWeaponsAtPlayer actor.id
 
                         _ ->
                             acc
@@ -391,7 +368,7 @@ handleKeyboardEvent keycode actors =
                 actor.components
         )
         actors
-        (Dict.toList actors)
+        actors
 
 
 moveFromKeyCode : Keyboard.KeyCode -> Position -> Position
@@ -415,8 +392,8 @@ moveFromKeyCode keycode position =
 
 actorsAt : Position -> Actors -> Actors
 actorsAt position actors =
-    Dict.filter
-        (\_ actor ->
+    List.filter
+        (\actor ->
             getPosition actor
                 |> Maybe.andThen
                     (\actorPos ->
@@ -450,8 +427,7 @@ updateKeyboardComponent keycode actor acc =
         |> Maybe.andThen
             (\actor ->
                 Just <|
-                    Dict.insert
-                        actor.id
+                    insertActor
                         actor
                         acc
             )
@@ -636,14 +612,16 @@ removeMoniesCollectedComponent actor =
 
 getActorIds : Actors -> List Int
 getActorIds actors =
-    Dict.keys actors
+    List.map
+        (\actor -> actor.id)
+        actors
 
 
 removeActorsById : List Int -> Actors -> Actors
 removeActorsById actorIdsToRemove acc =
-    Dict.filter
-        (\actorId _ ->
-            List.member actorId actorIdsToRemove
+    List.filter
+        (\actor ->
+            List.member actor.id actorIdsToRemove
                 |> not
         )
         acc
@@ -726,8 +704,8 @@ getPlayerWeaponDurability model =
 
 getHealthCountFromActors : Actors -> Int
 getHealthCountFromActors actors =
-    Dict.foldr
-        (\_ actor health ->
+    List.foldr
+        (\actor health ->
             if actorIsEnemy actor then
                 health + (getEnemyStrengthFromActorOrZero actor)
             else
@@ -756,8 +734,8 @@ getEnemyStrengthFromComponentOrZero component =
 
 getWeaponDurabilityFromActors : Actors -> Int
 getWeaponDurabilityFromActors actors =
-    Dict.foldr
-        (\_ actor weaponDurability ->
+    List.foldr
+        (\actor weaponDurability ->
             if actorIsWeapon actor && getWeaponDurabilityFromActorOrZero actor > weaponDurability then
                 getWeaponDurabilityFromActorOrZero actor
             else
@@ -769,8 +747,8 @@ getWeaponDurabilityFromActors actors =
 
 getCoinCountFromActors : Actors -> Int
 getCoinCountFromActors actors =
-    Dict.foldr
-        (\_ actor coins ->
+    List.foldr
+        (\actor coins ->
             if actorIsCollectible actor then
                 coins + getCoinValueFromActor actor
             else
@@ -823,9 +801,13 @@ updatePlayerWeaponDurabilityCount actor weaponDurability acc =
 
 insertActor : Actor -> Actors -> Actors
 insertActor actor actors =
-    Dict.insert
-        actor.id
-        actor
+    List.map
+        (\a ->
+            if a.id == actor.id then
+                actor
+            else
+                a
+        )
         actors
 
 
@@ -838,9 +820,9 @@ view model =
                     List.range 0 numberColumns
                         |> List.map
                             (\x ->
-                                Dict.toList model.actors
+                                model.actors
                                     |> List.map
-                                        (\( _, a ) ->
+                                        (\a ->
                                             a.components
                                                 |> List.map
                                                     (\c ->
