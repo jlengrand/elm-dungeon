@@ -37,7 +37,7 @@ module.exports = {
                 test: /\.elm$/,
                 use: [
                     {
-                        loader: 'elm-hot-loader'
+                        loader: 'elm-hot-webpack-loader'
                     },
                     {
                         loader: 'elm-webpack-loader',

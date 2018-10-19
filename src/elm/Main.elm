@@ -1,12 +1,15 @@
 module Main exposing (main)
 
-import Html exposing (Html, div, text, span)
-import Maybe.Extra
-import Keyboard
-import Dict exposing (Dict)
-import Json.Encode exposing (string)
-import Html.Attributes exposing (property, id)
+import Browser
+import Browser.Events exposing (onKeyDown)
 import Debug
+import Dict exposing (Dict)
+import Html exposing (Html, div, p, span, text)
+import Html.Attributes exposing (id, property)
+import Json.Decode
+import Json.Encode exposing (string)
+import Maybe.Extra
+import String
 
 
 type alias Model =
@@ -70,11 +73,12 @@ type alias Actor =
     }
 
 
-type KeyCodes
-    = LeftArrow
-    | UpArrow
-    | RightArrow
-    | DownArrow
+type Direction
+    = Left
+    | Up
+    | Right
+    | Down
+    | Other
 
 
 enemySymbol : String
@@ -89,7 +93,7 @@ coinSymbol =
 
 playerSymbol : String
 playerSymbol =
-    "👩\x1F3FB\x200D🚀"
+    "👩\u{1F3FB}\u{200D}🚀"
 
 
 weaponSymbol : String
@@ -112,34 +116,28 @@ numberColumns =
     3
 
 
-leftArrow : Int
-leftArrow =
-    37
+keyDecoder : Json.Decode.Decoder Direction
+keyDecoder =
+    Json.Decode.map toDirection (Json.Decode.field "key" Json.Decode.string)
 
 
-upArrow : Int
-upArrow =
-    38
+toDirection : String -> Direction
+toDirection string =
+    case string of
+        "ArrowLeft" ->
+            Left
 
+        "ArrowRight" ->
+            Right
 
-rightArrow : Int
-rightArrow =
-    39
+        "ArrowUp" ->
+            Up
 
+        "ArrowDown" ->
+            Down
 
-downArrow : Int
-downArrow =
-    40
-
-
-validKeyCodesMap : Dict Keyboard.KeyCode KeyCodes
-validKeyCodesMap =
-    Dict.fromList
-        [ ( leftArrow, LeftArrow )
-        , ( rightArrow, RightArrow )
-        , ( downArrow, DownArrow )
-        , ( upArrow, UpArrow )
-        ]
+        _ ->
+            Other
 
 
 componentToPrintSymbol : Component -> Maybe String
@@ -170,73 +168,73 @@ actorToPrintSymbol actor =
         |> Maybe.withDefault playerSymbol
 
 
-main : Program Never Model Msg
 main =
-    Html.program
+    Browser.element
         { init = init
         , update = update
-        , view = view
         , subscriptions = subscriptions
+        , view = view
         }
 
 
-init : ( Model, Cmd Msg )
-init =
-    { actors =
-        [ { id = 1
-          , components =
-                [ TransformComponent { x = 1, y = 2 }
-                , KeyboardComponent
-                , ObjectTypeComponent Player
-                , MoniesCollectedComponent 0
-                , HealthComponent startHealth
-                , WeaponComponent 0
-                ]
-          }
-        , { id = 2
-          , components =
-                [ TransformComponent { x = 1, y = 1 }
-                , ObjectTypeComponent (Enemy 2)
-                ]
-          }
-        , { id = 3
-          , components =
-                [ TransformComponent { x = 0, y = 0 }
-                , ObjectTypeComponent (Coin 4)
-                ]
-          }
-        , { id = 4
-          , components =
-                [ TransformComponent { x = 2, y = 2 }
-                , ObjectTypeComponent (Weapon 5)
-                ]
-          }
-        , { id = 5
-          , components =
-                [ TransformComponent { x = 0, y = 2 }
-                , ObjectTypeComponent (Weapon 1)
-                ]
-          }
-        , { id = 6
-          , components =
-                [ TransformComponent { x = 0, y = 1 }
-                , ObjectTypeComponent (Enemy 6)
-                ]
-          }
-        ]
-    }
-        ! []
+init : () -> ( Model, Cmd Msg )
+init _ =
+    ( { actors =
+            [ { id = 1
+              , components =
+                    [ TransformComponent { x = 1, y = 2 }
+                    , KeyboardComponent
+                    , ObjectTypeComponent Player
+                    , MoniesCollectedComponent 0
+                    , HealthComponent startHealth
+                    , WeaponComponent 0
+                    ]
+              }
+            , { id = 2
+              , components =
+                    [ TransformComponent { x = 1, y = 1 }
+                    , ObjectTypeComponent (Enemy 2)
+                    ]
+              }
+            , { id = 3
+              , components =
+                    [ TransformComponent { x = 0, y = 0 }
+                    , ObjectTypeComponent (Coin 4)
+                    ]
+              }
+            , { id = 4
+              , components =
+                    [ TransformComponent { x = 2, y = 2 }
+                    , ObjectTypeComponent (Weapon 5)
+                    ]
+              }
+            , { id = 5
+              , components =
+                    [ TransformComponent { x = 0, y = 2 }
+                    , ObjectTypeComponent (Weapon 1)
+                    ]
+              }
+            , { id = 6
+              , components =
+                    [ TransformComponent { x = 0, y = 1 }
+                    , ObjectTypeComponent (Enemy 6)
+                    ]
+              }
+            ]
+      }
+    , Cmd.none
+    )
 
 
 type Msg
-    = KeyPressed Keyboard.KeyCode
+    = KeyPressed Direction
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        KeyPressed keycode ->
-            { model | actors = handleKeyboardEvent keycode model.actors } ! []
+        KeyPressed direction ->
+            ( { model | actors = handleDirectionEvent direction model.actors }, Cmd.none )
 
 
 getActorFromId : Int -> Actors -> Maybe Actor
@@ -346,21 +344,21 @@ consumeCoinsAndGiveToPlayer player acc coinActors =
         |> updateCoinCount player (getCoinCountFromActors coinActors)
 
 
-handleKeyboardEvent : Keyboard.KeyCode -> Actors -> Actors
-handleKeyboardEvent keycode actors =
+handleDirectionEvent : Direction -> Actors -> Actors
+handleDirectionEvent direction actors =
     List.foldr
         (\actor acc ->
             List.foldr
-                (\component acc ->
+                (\component acc2 ->
                     case component of
                         KeyboardComponent ->
-                            updateKeyboardComponent keycode actor acc
+                            updateKeyboardComponent direction actor acc2
                                 |> collectCoinsAtPlayer actor.id
                                 |> removeEnemiesAtPlayer actor.id
                                 |> grabWeaponsAtPlayer actor.id
 
                         _ ->
-                            acc
+                            acc2
                 )
                 acc
                 actor.components
@@ -369,19 +367,19 @@ handleKeyboardEvent keycode actors =
         actors
 
 
-moveFromKeyCode : Keyboard.KeyCode -> Position -> Position
-moveFromKeyCode keycode position =
-    case Dict.get keycode validKeyCodesMap of
-        Just LeftArrow ->
+moveFromDirection : Direction -> Position -> Position
+moveFromDirection direction position =
+    case direction of
+        Left ->
             { x = max 0 (position.x - 1), y = position.y }
 
-        Just RightArrow ->
+        Right ->
             { x = min numberColumns (position.x + 1), y = position.y }
 
-        Just UpArrow ->
+        Up ->
             { x = position.x, y = max 0 (position.y - 1) }
 
-        Just DownArrow ->
+        Down ->
             { x = position.x, y = min numberRows (position.y + 1) }
 
         _ ->
@@ -402,14 +400,11 @@ actorsAt position actors =
         actors
 
 
-updateKeyboardComponent : Keyboard.KeyCode -> Actor -> Actors -> Actors
-updateKeyboardComponent keycode actor acc =
+updateKeyboardComponent : Direction -> Actor -> Actors -> Actors
+updateKeyboardComponent direction actor acc =
     getPosition actor
         |> Maybe.andThen
-            (\position ->
-                Just <|
-                    moveFromKeyCode keycode position
-            )
+            (\position -> Just <| moveFromDirection direction position)
         |> Maybe.andThen
             (\position ->
                 let
@@ -420,13 +415,13 @@ updateKeyboardComponent keycode actor acc =
                             )
                             actor.components
                 in
-                    Just { actor | components = TransformComponent position :: newComponents }
+                Just { actor | components = TransformComponent position :: newComponents }
             )
         |> Maybe.andThen
-            (\actor ->
+            (\actor2 ->
                 Just <|
                     insertActor
-                        actor
+                        actor2
                         acc
             )
         |> Maybe.withDefault acc
@@ -529,6 +524,7 @@ addWeaponToWeaponComponent currentDurability additionalDurability actor =
         WeaponComponent currentDurability
             :: actor.components
             |> setActorComponents actor
+
     else
         WeaponComponent additionalDurability
             :: actor.components
@@ -705,7 +701,8 @@ getHealthCountFromActors actors =
     List.foldr
         (\actor health ->
             if actorIsEnemy actor then
-                health + (getEnemyStrengthFromActorOrZero actor)
+                health + getEnemyStrengthFromActorOrZero actor
+
             else
                 health
         )
@@ -736,6 +733,7 @@ getWeaponDurabilityFromActors actors =
         (\actor weaponDurability ->
             if actorIsWeapon actor && getWeaponDurabilityFromActorOrZero actor > weaponDurability then
                 getWeaponDurabilityFromActorOrZero actor
+
             else
                 weaponDurability
         )
@@ -749,6 +747,7 @@ getCoinCountFromActors actors =
         (\actor coins ->
             if actorIsCollectible actor then
                 coins + getCoinValueFromActor actor
+
             else
                 coins
         )
@@ -778,7 +777,7 @@ updateCoinCount actor coins acc =
     actor
         |> removeMoniesCollectedComponent
         |> addCoinsToMoniesCollectedComponent (getMoniesFromActorOrZero actor) coins
-        |> flip insertActor acc
+        |> (\a -> insertActor a acc)
 
 
 updateHealthCount : Actor -> Int -> Actors -> Actors
@@ -786,7 +785,7 @@ updateHealthCount actor health acc =
     actor
         |> removeHealthComponent
         |> addDamageToHealthComponent (getHealthFromActorOrZero actor) health
-        |> flip insertActor acc
+        |> (\a -> insertActor a acc)
 
 
 updatePlayerWeaponDurabilityCount : Actor -> Int -> Actors -> Actors
@@ -794,13 +793,14 @@ updatePlayerWeaponDurabilityCount actor weaponDurability acc =
     actor
         |> removeWeaponComponent
         |> addWeaponToWeaponComponent (getPlayerWeaponDurabilityFromActorOrZero actor) weaponDurability
-        |> flip insertActor acc
+        |> (\a -> insertActor a acc)
 
 
 insertActor : Actor -> Actors -> Actors
 insertActor actor actors =
     if hasActorId actor.id actors then
         replaceActor actor actors
+
     else
         actor :: actors
 
@@ -811,6 +811,7 @@ replaceActor actor actors =
         (\a ->
             if a.id == actor.id then
                 actor
+
             else
                 a
         )
@@ -858,7 +859,7 @@ view model =
                                         (\( a, _ ) ->
                                             Just <|
                                                 div [ id "cell-view" ]
-                                                    [ span [ property "innerHTML" (string (actorToPrintSymbol a)) ] []
+                                                    [ div [] [ text (actorToPrintSymbol a) ]
                                                     ]
                                         )
                                     |> Maybe.withDefault
@@ -871,13 +872,13 @@ view model =
                 )
             |> div [ id "cells-view" ]
         , div [ id "game-info" ]
-            [ div [] [ text ("Monies collected : " ++ toString (getMonies model) ++ "!") ]
-            , div [] [ text ("Current health : " ++ toString (getHealth model) ++ "!") ]
-            , div [] [ text ("Weapon durability : " ++ toString (getPlayerWeaponDurability model) ++ "!") ]
+            [ div [] [ text ("Monies collected : " ++ String.fromInt (getMonies model) ++ "!") ]
+            , div [] [ text ("Current health : " ++ String.fromInt (getHealth model) ++ "!") ]
+            , div [] [ text ("Weapon durability : " ++ String.fromInt (getPlayerWeaponDurability model) ++ "!") ]
             ]
         ]
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Keyboard.downs KeyPressed
+    onKeyDown (Json.Decode.map KeyPressed keyDecoder)
