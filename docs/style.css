@@ -20,7 +20,7 @@
     justify-content: center;
 }
 
-#cell-view span {
+#cell-view div {
     font-size: 5vw;
 }
 

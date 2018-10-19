@@ -28,7 +28,7 @@
   },
   "scripts": {
     "dev": "webpack-dev-server --config ./webpack.config.dev.js --open",
-    "prod": "webpack --config ./webpack.config.prod.js -p",
+    "prod": "webpack --config ./webpack.config.prod.js",
     "analyse": "elm-analyse",
     "postinstall": "NODE_TLS_REJECT_UNAUTHORIZED=\"0\" ./node_modules/.bin/elm-install install"
   },
