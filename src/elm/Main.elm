@@ -1,12 +1,12 @@
 module Main exposing (main)
 
--- import Browser.Events
-
 import Browser
+import Browser.Events exposing (onKeyDown)
 import Debug
 import Dict exposing (Dict)
 import Html exposing (Html, div, p, span, text)
 import Html.Attributes exposing (id, property)
+import Json.Decode
 import Json.Encode exposing (string)
 import Maybe.Extra
 import String
@@ -73,13 +73,12 @@ type alias Actor =
     }
 
 
-
--- type Direction
---     = Left
---     | Up
---     | Right
---     | Down
---     | Other
+type Direction
+    = Left
+    | Up
+    | Right
+    | Down
+    | Other
 
 
 enemySymbol : String
@@ -117,51 +116,28 @@ numberColumns =
     3
 
 
-leftArrow : Int
-leftArrow =
-    37
+keyDecoder : Json.Decode.Decoder Direction
+keyDecoder =
+    Json.Decode.map toDirection (Json.Decode.field "key" Json.Decode.string)
 
 
-upArrow : Int
-upArrow =
-    38
+toDirection : String -> Direction
+toDirection string =
+    case string of
+        "ArrowLeft" ->
+            Left
 
+        "ArrowRight" ->
+            Right
 
-rightArrow : Int
-rightArrow =
-    39
+        "ArrowUp" ->
+            Up
 
+        "ArrowDown" ->
+            Down
 
-downArrow : Int
-downArrow =
-    40
-
-
-
--- keyDecoder : Decode.Decoder Direction
--- keyDecoder =
---     Decode.map toDirection (Decode.field "key" Decode.string)
--- toDirection : String -> Direction
--- toDirection string =
---   case string of
---     "ArrowLeft" ->
---       Left
---     "ArrowRight" ->
---       Right
---     "ArrowUp" ->
---       Up
---     "ArrowDown" ->
---       Down
---     _ ->
---       Other
--- validKeyCodesMap : Dict Keyboard.KeyCode KeyCodes
--- validKeyCodesMap =
---     Dict.fromList
---         [ ( leftArrow, LeftArrow )
---         , ( rightArrow, RightArrow )
---         , ( downArrow, DownArrow )
---         , ( upArrow, UpArrow )
---         ]
+        _ ->
+            Other
 
 
 componentToPrintSymbol : Component -> Maybe String
@@ -251,21 +227,14 @@ init _ =
 
 
 type Msg
-    = NoOp
+    = KeyPressed Direction
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
-            ( model, Cmd.none )
-
-
-
--- KeyPressed keycode ->
---     ( { model | actors = handleKeyboardEvent keycode model.actors }
---     , Cmd.none
---     )
+        KeyPressed direction ->
+            ( { model | actors = handleDirectionEvent direction model.actors }, Cmd.none )
 
 
 getActorFromId : Int -> Actors -> Maybe Actor
@@ -375,40 +344,46 @@ consumeCoinsAndGiveToPlayer player acc coinActors =
         |> updateCoinCount player (getCoinCountFromActors coinActors)
 
 
+handleDirectionEvent : Direction -> Actors -> Actors
+handleDirectionEvent direction actors =
+    List.foldr
+        (\actor acc ->
+            List.foldr
+                (\component acc2 ->
+                    case component of
+                        KeyboardComponent ->
+                            updateKeyboardComponent direction actor acc2
+                                |> collectCoinsAtPlayer actor.id
+                                |> removeEnemiesAtPlayer actor.id
+                                |> grabWeaponsAtPlayer actor.id
 
--- handleKeyboardEvent : Keyboard.KeyCode -> Actors -> Actors
--- handleKeyboardEvent keycode actors =
---     List.foldr
---         (\actor acc ->
---             List.foldr
---                 (\component acc ->
---                     case component of
---                         KeyboardComponent ->
---                             updateKeyboardComponent keycode actor acc
---                                 |> collectCoinsAtPlayer actor.id
---                                 |> removeEnemiesAtPlayer actor.id
---                                 |> grabWeaponsAtPlayer actor.id
---                         _ ->
---                             acc
---                 )
---                 acc
---                 actor.components
---         )
---         actors
---         actors
--- moveFromKeyCode : Keyboard.KeyCode -> Position -> Position
--- moveFromKeyCode keycode position =
---     case Dict.get keycode validKeyCodesMap of
---         Just LeftArrow ->
---             { x = max 0 (position.x - 1), y = position.y }
---         Just RightArrow ->
---             { x = min numberColumns (position.x + 1), y = position.y }
---         Just UpArrow ->
---             { x = position.x, y = max 0 (position.y - 1) }
---         Just DownArrow ->
---             { x = position.x, y = min numberRows (position.y + 1) }
---         _ ->
---             position
+                        _ ->
+                            acc2
+                )
+                acc
+                actor.components
+        )
+        actors
+        actors
+
+
+moveFromDirection : Direction -> Position -> Position
+moveFromDirection direction position =
+    case direction of
+        Left ->
+            { x = max 0 (position.x - 1), y = position.y }
+
+        Right ->
+            { x = min numberColumns (position.x + 1), y = position.y }
+
+        Up ->
+            { x = position.x, y = max 0 (position.y - 1) }
+
+        Down ->
+            { x = position.x, y = min numberRows (position.y + 1) }
+
+        _ ->
+            position
 
 
 actorsAt : Position -> Actors -> Actors
@@ -425,35 +400,31 @@ actorsAt position actors =
         actors
 
 
-
--- updateKeyboardComponent : Keyboard.KeyCode -> Actor -> Actors -> Actors
--- updateKeyboardComponent keycode actor acc =
---     getPosition actor
---         |> Maybe.andThen
---             (\position ->
---                 Just <|
---                     moveFromKeyCode keycode position
---             )
---         |> Maybe.andThen
---             (\position ->
---                 let
---                     newComponents =
---                         List.filter
---                             (\c ->
---                                 isTransformComponent c |> not
---                             )
---                             actor.components
---                 in
---                 Just { actor | components = TransformComponent position :: newComponents }
---             )
---         |> Maybe.andThen
---             (\actor ->
---                 Just <|
---                     insertActor
---                         actor
---                         acc
---             )
---         |> Maybe.withDefault acc
+updateKeyboardComponent : Direction -> Actor -> Actors -> Actors
+updateKeyboardComponent direction actor acc =
+    getPosition actor
+        |> Maybe.andThen
+            (\position -> Just <| moveFromDirection direction position)
+        |> Maybe.andThen
+            (\position ->
+                let
+                    newComponents =
+                        List.filter
+                            (\c ->
+                                isTransformComponent c |> not
+                            )
+                            actor.components
+                in
+                Just { actor | components = TransformComponent position :: newComponents }
+            )
+        |> Maybe.andThen
+            (\actor2 ->
+                Just <|
+                    insertActor
+                        actor2
+                        acc
+            )
+        |> Maybe.withDefault acc
 
 
 actorIsWeapon : Actor -> Bool
@@ -910,8 +881,4 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
-
-
-
--- Keyboard.downs KeyPressed
+    onKeyDown (Json.Decode.map KeyPressed keyDecoder)
