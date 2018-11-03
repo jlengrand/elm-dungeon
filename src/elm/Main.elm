@@ -326,22 +326,22 @@ grabWeaponsAtPlayer actorId acc =
 grabWeaponAndGiveToPlayer : Actor -> Actors -> Actors -> Actors
 grabWeaponAndGiveToPlayer player acc weaponActors =
     acc
-        |> removeActorsById (getActorIds weaponActors)
         |> updatePlayerWeaponDurabilityCount player (getWeaponDurabilityFromActors weaponActors)
+        |> removeActorsById (getActorIds weaponActors)
 
 
 killEnemyAndHurtPlayer : Actor -> Actors -> Actors -> Actors
 killEnemyAndHurtPlayer player acc enemyActors =
     acc
-        |> removeActorsById (getActorIds enemyActors)
         |> updateHealthCount player (getHealthCountFromActors enemyActors)
+        |> removeActorsById (getActorIds enemyActors)
 
 
 consumeCoinsAndGiveToPlayer : Actor -> Actors -> Actors -> Actors
 consumeCoinsAndGiveToPlayer player acc coinActors =
     acc
-        |> removeActorsById (getActorIds coinActors)
         |> updateCoinCount player (getCoinCountFromActors coinActors)
+        |> removeActorsById (getActorIds coinActors)
 
 
 handleDirectionEvent : Direction -> Actors -> Actors
@@ -589,6 +589,21 @@ removeWeaponComponent actor =
         |> setActorComponents actor
 
 
+removeEnemyComponent : Actor -> Actor
+removeEnemyComponent actor =
+    List.filter
+        (\c ->
+            case c of
+                WeaponComponent _ ->
+                    False
+
+                _ ->
+                    True
+        )
+        actor.components
+        |> setActorComponents actor
+
+
 removeMoniesCollectedComponent : Actor -> Actor
 removeMoniesCollectedComponent actor =
     List.filter
@@ -781,10 +796,10 @@ updateCoinCount actor coins acc =
 
 
 updateHealthCount : Actor -> Int -> Actors -> Actors
-updateHealthCount actor health acc =
+updateHealthCount actor enemyHealth acc =
     actor
         |> removeHealthComponent
-        |> addDamageToHealthComponent (getHealthFromActorOrZero actor) health
+        |> addDamageToHealthComponent (getHealthFromActorOrZero actor) enemyHealth
         |> (\a -> insertActor a acc)
 
 
