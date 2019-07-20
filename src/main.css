@@ -1,0 +1,57 @@
+body {
+  font-family: "Source Sans Pro", "Trebuchet MS", "Lucida Grande",
+    "Bitstream Vera Sans", "Helvetica Neue", sans-serif;
+  margin: 0;
+  text-align: center;
+  color: #293c4b;
+}
+
+h1 {
+  font-size: 30px;
+}
+
+img {
+  margin: 20px 0;
+  max-width: 200px;
+}
+
+#cells-view {
+  width: 30vw; /* 20% of the viewport width */
+  height: 30vw;
+  display: inline-flex;
+  flex-direction: column;
+}
+
+#row-view {
+  flex: 1;
+  display: flex;
+}
+
+#cell-view {
+  flex: 1;
+  border-style: solid;
+  border-width: 1px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#cell-view div {
+  font-size: 5vw;
+}
+
+#game-info {
+  font-size: 200%;
+}
+
+@media (max-width: 1025px) {
+  #cells-view {
+    width: 80vw; /* 20% of the viewport width */
+    height: 80vw;
+  }
+
+  #cell-view span {
+    font-size: 15vw;
+  }
+}
