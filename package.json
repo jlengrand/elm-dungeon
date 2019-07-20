@@ -1,0 +1,29 @@
+{
+  "name": "elm-dungeon",
+  "version": "1.0.0",
+  "description": "Simple dungeon tile based game written in Elm ",
+  "main": "build/index.html",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "elm-app build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jlengrand/elm-dungeon.git"
+  },
+  "keywords": [
+    "elm"
+  ],
+  "author": "Julien Lengrand-Lambert <julien@lengrand.fr>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jlengrand/elm-dungeon/issues"
+  },
+  "homepage": "https://github.com/jlengrand/elm-dungeon#readme",
+  "devDependencies": {
+    "create-elm-app": "^3.2.1"
+  }
+}
